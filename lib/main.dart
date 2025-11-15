@@ -1,4 +1,5 @@
-import 'package:do_it_now/ui/to_do_screen.dart';
+import 'package:do_it_now/ui/hive/task_model.dart';
+import 'package:do_it_now/ui/to_do_screen/to_do_screen.dart';
 import 'package:do_it_now/ui/welcom/splash_screen.dart';
 import 'package:do_it_now/ui/welcom/welcom_screen.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +7,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Hive init
   await Hive.initFlutter();
-  await Hive.openBox('todoBox');
+
+  Hive.registerAdapter(TaskModelAdapter()); // <-- MUHIM
+
+  await Hive.openBox<TaskModel>('tasks'); // <-- Modelga mos box
   runApp(const MyApp());
 }
 
