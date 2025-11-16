@@ -34,7 +34,7 @@ android {
         applicationId "uz.doit.now"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 3
+        versionCode 5
         versionName "1.0.2"
     }
 
