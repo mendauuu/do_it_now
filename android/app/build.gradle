@@ -10,7 +10,7 @@ plugins {
 }
 
 def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file("app/key.properties")
+def keystorePropertiesFile = rootProject.file("key.properties")
 
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
@@ -32,26 +32,36 @@ android {
 
     defaultConfig {
         applicationId "uz.doit.now"
-        minSdkVersion 21
-        targetSdkVersion 35
-        versionCode 5
-        versionName "1.0.2"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 36
+        versionCode 20
+        versionName "1.0.20"
     }
 
-   signingConfigs {
-    release {
-        keyAlias = keystoreProperties["keyAlias"]
-        keyPassword = keystoreProperties["keyPassword"]
-        storeFile = file(keystoreProperties["storeFile"])
-        storePassword = keystoreProperties["storePassword"]
+    ndkVersion = "26.3.11579264"
+
+    signingConfigs {
+        release {
+            keyAlias = keystoreProperties["keyAlias"]
+            keyPassword = keystoreProperties["keyPassword"]
+            storeFile = file(keystoreProperties["storeFile"])
+            storePassword = keystoreProperties["storePassword"]
+            }
     }
-}
 
 buildTypes {
+    debug {
+        signingConfig signingConfigs.debug
+    }
     release {
         signingConfig signingConfigs.release
+        minifyEnabled true
+        shrinkResources true
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
     }
+
 }
+
 }
 
 flutter {

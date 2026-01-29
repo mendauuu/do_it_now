@@ -1,5 +1,5 @@
 import 'package:do_it_now/ui/hive/task_model.dart';
-import 'package:do_it_now/ui/to_do_screen/to_do_screen.dart';
+import 'package:do_it_now/ui/to_do_screen/home_pager.dart';
 import 'package:do_it_now/ui/welcom/splash_screen.dart';
 import 'package:do_it_now/ui/welcom/welcom_screen.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +29,10 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Color(0xFFB0C4DE), // Powder Blue Background
         textTheme: TextTheme(
           bodyLarge: TextStyle(
-              color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w500),
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
           bodyMedium: TextStyle(color: Colors.black87, fontSize: 16),
         ),
       ),
@@ -38,7 +41,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => SplashScreen(),
         '/welcome': (context) => WelcomeScreen(),
-        '/todo': (context) => TodoScreen(), // Todo screen uchun UI
+        '/todo': (context) => TodoClockFlip(), // Todo screen uchun UI
       },
     );
   }
