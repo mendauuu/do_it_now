@@ -2,46 +2,76 @@ import 'package:do_it_now/ui/hive/task_model.dart';
 import 'package:do_it_now/ui/to_do_screen/home_pager.dart';
 import 'package:do_it_now/ui/welcom/splash_screen.dart';
 import 'package:do_it_now/ui/welcom/welcom_screen.dart';
+import 'package:do_it_now/ui/clock_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Hive init
   await Hive.initFlutter();
+  Hive.registerAdapter(TaskModelAdapter());
+  await Hive.openBox<TaskModel>('tasks');
 
-  Hive.registerAdapter(TaskModelAdapter()); // <-- MUHIM
-
-  await Hive.openBox<TaskModel>('tasks'); // <-- Modelga mos box
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  int _selectedThemeIndex = 1; // Dark theme by default
+
+  void _changeTheme(int index) {
+    setState(() {
+      _selectedThemeIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final selectedTheme = ClockTheme.themes[_selectedThemeIndex];
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: Color(0xFFB0C4DE), // Powder Blue
-        scaffoldBackgroundColor: Color(0xFFB0C4DE), // Powder Blue Background
+
+      // 🌙 DARK THEME using ClockTheme
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: selectedTheme.backgroundColor,
+        primaryColor: selectedTheme.hourHandColor,
+        colorScheme: ColorScheme.dark(
+          background: selectedTheme.backgroundColor,
+          surface: selectedTheme.secondaryBackgroundColor,
+          primary: selectedTheme.hourHandColor,
+          secondary: selectedTheme.secondHandColor,
+        ),
+        cardColor: selectedTheme.secondaryBackgroundColor,
         textTheme: TextTheme(
           bodyLarge: TextStyle(
-            color: Colors.black87,
+            color: selectedTheme.textColor,
             fontSize: 18,
             fontWeight: FontWeight.w500,
           ),
-          bodyMedium: TextStyle(color: Colors.black87, fontSize: 16),
+          bodyMedium: TextStyle(
+            color: selectedTheme.secondaryTextColor,
+            fontSize: 16,
+          ),
         ),
       ),
+
       title: 'To-Do App',
       initialRoute: '/',
       routes: {
         '/': (context) => SplashScreen(),
         '/welcome': (context) => WelcomeScreen(),
-        '/todo': (context) => TodoClockFlip(), // Todo screen uchun UI
+        '/todo': (context) => TodoClockFlip(
+              currentThemeIndex: _selectedThemeIndex,
+              onThemeChanged: _changeTheme,
+            ),
       },
     );
   }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../theme/app_colors.dart';
+import '../clock_theme.dart';
 import '../hive/task_model.dart';
 import 'widget/input_task.dart';
 import 'widget/task_list.dart';
 
 class TodoPage extends StatefulWidget {
   final VoidCallback onFlip;
-  const TodoPage({super.key, required this.onFlip});
+  final ClockTheme theme;
+  const TodoPage({super.key, required this.onFlip, required this.theme});
 
   @override
   State<TodoPage> createState() => _TodoPageState();
@@ -23,12 +24,20 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   @override
+  void didUpdateWidget(TodoPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.theme != widget.theme) {
+      setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       height: 600, // Fixed height for FlipCard
       width: 360,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: widget.theme.secondaryBackgroundColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -42,15 +51,12 @@ class _TodoPageState extends State<TodoPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: const Text("Do it now", style: TextStyle(color: Colors.white)),
+          // elevation: 0,
+          title: Text(
+            "Do it now",
+            style: TextStyle(color: widget.theme.textColor),
+          ),
           centerTitle: true,
-          actions: [
-            IconButton(
-              onPressed: widget.onFlip,
-              icon: const Icon(Icons.access_time, color: Colors.white),
-            ),
-          ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(16),
@@ -62,6 +68,7 @@ class _TodoPageState extends State<TodoPage> {
                 child: TaskListWidget(
                   taskBox: _taskBox,
                   removeTaskCallback: _removeTask,
+                  theme: widget.theme,
                 ),
               ),
             ],

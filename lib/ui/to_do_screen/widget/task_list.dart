@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../clock_theme.dart';
 import '../../hive/task_model.dart';
 
 class TaskListWidget extends StatelessWidget {
   final Box<TaskModel> taskBox;
   final Function(int) removeTaskCallback;
+  final ClockTheme theme;
 
   const TaskListWidget({
     super.key,
     required this.taskBox,
     required this.removeTaskCallback,
+    required this.theme,
   });
 
   @override
@@ -18,10 +21,10 @@ class TaskListWidget extends StatelessWidget {
       valueListenable: taskBox.listenable(),
       builder: (context, Box<TaskModel> box, _) {
         if (box.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               "No tasks yet",
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: theme.secondaryTextColor),
             ),
           );
         }
@@ -36,19 +39,20 @@ class TaskListWidget extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: theme.borderColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.borderColor.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       task?.title ?? '',
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: theme.textColor),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    icon: Icon(Icons.delete, color: theme.secondHandColor),
                     onPressed: () => removeTaskCallback(index),
                   ),
                 ],
