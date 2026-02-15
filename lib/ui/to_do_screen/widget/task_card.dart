@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:do_it_now/ui/theme/app_colors.dart';
 import 'package:do_it_now/ui/hive/task_model.dart';
 
 class TaskCard extends StatelessWidget {
@@ -75,7 +76,7 @@ class TaskCard extends StatelessWidget {
               icon: const Icon(Icons.delete_outline),
               label: const Text("Delete"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[300], // soft red
+                backgroundColor: AppColors.accent, // soft red
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

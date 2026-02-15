@@ -37,18 +37,18 @@ class _TodoPageState extends State<TodoPage> {
       height: 600, // Fixed height for FlipCard
       width: 360,
       decoration: BoxDecoration(
-        color: widget.theme.secondaryBackgroundColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: widget.theme.backgroundColor,
+        // borderRadius: BorderRadius.circular(24),
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: Colors.black.withOpacity(0.4),
+        //     blurRadius: 20,
+        //     offset: const Offset(0, 10),
+        //   ),
+        // ],
       ),
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: widget.theme.backgroundColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           // elevation: 0,

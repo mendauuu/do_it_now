@@ -20,7 +20,8 @@ class PomodoroTimer extends StatefulWidget {
   State<PomodoroTimer> createState() => _PomodoroTimerState();
 }
 
-class _PomodoroTimerState extends State<PomodoroTimer> {
+class _PomodoroTimerState extends State<PomodoroTimer>
+    with AutomaticKeepAliveClientMixin {
   late final StreamController<int> _minutesController;
   late final StreamController<int> _secondsController;
   late Timer _timer;
@@ -37,6 +38,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
     _remainingSeconds = widget.workDuration * 60;
     _updateDisplay();
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   void _updateDisplay() {
     int minutes = _remainingSeconds ~/ 60;
@@ -105,6 +109,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final size = MediaQuery.of(context).size;
     final baseSize = size.width * 0.45;
     final spacing = baseSize * 0.15;

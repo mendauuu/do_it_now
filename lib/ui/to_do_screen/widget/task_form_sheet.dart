@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:do_it_now/ui/theme/app_colors.dart';
 
 class TaskFormSheet extends StatefulWidget {
   final Function(String, String, int) onAddTask;
@@ -34,7 +35,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
+              color: Colors.white,
             ),
           ),
           SizedBox(height: 20),
@@ -45,7 +46,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             decoration: InputDecoration(
               hintText: "Task title",
               filled: true,
-              fillColor: Colors.grey[100],
+              fillColor: AppColors.surface,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -61,7 +62,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             decoration: InputDecoration(
               hintText: "Description (optional)",
               filled: true,
-              fillColor: Colors.grey[100],
+              fillColor: AppColors.surface,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -75,7 +76,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             children: [
               Text(
                 "Priority:",
-                style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
               SizedBox(width: 12),
               for (int i = 1; i <= 3; i++)
@@ -90,13 +91,13 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
                       color: selectedPriority == i
-                          ? Colors.blueAccent
+                          ? AppColors.primary
                           : Colors.grey[300],
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: selectedPriority == i
                           ? [
                               BoxShadow(
-                                color: Colors.blueAccent.withOpacity(0.4),
+                                color: AppColors.primary.withOpacity(0.4),
                                 blurRadius: 6,
                                 offset: Offset(0, 3),
                               ),
@@ -108,7 +109,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                       style: TextStyle(
                         color: selectedPriority == i
                             ? Colors.white
-                            : Colors.black87,
+                            : Colors.white70,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -135,7 +136,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
               icon: Icon(Icons.add_task),
               label: Text("Add Task"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[300], // Soft Red / Coral
+                backgroundColor: AppColors.accent, // Soft Red / Coral
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

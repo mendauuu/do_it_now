@@ -23,11 +23,18 @@ class TodoClockFlip extends StatefulWidget {
 class _TodoClockFlipState extends State<TodoClockFlip> {
   final PageController _pageController = PageController();
   late ClockTheme currentTheme;
+  int _currentPageIndex = 0;
 
   @override
   void initState() {
     super.initState();
     currentTheme = ClockTheme.themes[widget.currentThemeIndex];
+
+    _pageController.addListener(() {
+      setState(() {
+        _currentPageIndex = _pageController.page?.round() ?? 0;
+      });
+    });
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -115,7 +122,7 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: currentTheme.backgroundColor,
       floatingActionButton: FloatingActionButton(
         backgroundColor: currentTheme.hourHandColor,
         onPressed: _showThemeSettings,
@@ -144,6 +151,8 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
             quarterTurns: 3,
             child: FlipClockWidget(
               theme: currentTheme,
+              pageController: _pageController,
+              currentTheme: currentTheme,
             ),
           ),
         ],

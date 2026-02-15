@@ -6,35 +6,45 @@ import 'flip_panel_plus.dart';
 
 class FlipClockWidget extends StatefulWidget {
   final ClockTheme theme;
+  final PageController? pageController;
+  final ClockTheme? currentTheme;
 
-  const FlipClockWidget({super.key, required this.theme});
+  const FlipClockWidget({
+    super.key,
+    required this.theme,
+    this.pageController,
+    this.currentTheme,
+  });
 
   @override
   State<FlipClockWidget> createState() => _FlipClockWidgetState();
 }
 
 class _FlipClockWidgetState extends State<FlipClockWidget> {
+  late final StreamController<int> _hoursController;
   late final StreamController<int> _minutesController;
-  late final StreamController<int> _secondsController;
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+    _hoursController = StreamController<int>.broadcast();
     _minutesController = StreamController<int>.broadcast();
-    _secondsController = StreamController<int>.broadcast();
     _startTimer();
   }
 
   void _startTimer() {
+    // check every second but only emit when hour or minute changes
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       final now = DateTime.now();
 
+      if (now.hour != _currentTime.hour) {
+        _hoursController.add(now.hour);
+      }
       if (now.minute != _currentTime.minute) {
         _minutesController.add(now.minute);
       }
-      _secondsController.add(now.second);
       _currentTime = now;
     });
   }
@@ -42,8 +52,8 @@ class _FlipClockWidgetState extends State<FlipClockWidget> {
   @override
   void dispose() {
     _timer.cancel();
+    _hoursController.close();
     _minutesController.close();
-    _secondsController.close();
     super.dispose();
   }
 
@@ -55,7 +65,7 @@ class _FlipClockWidgetState extends State<FlipClockWidget> {
     final baseSize = size.width * 0.45;
     final spacing = baseSize * 0.15;
 
-    return SizedBox.expand(
+    final clockContent = SizedBox.expand(
       child: Container(
         color: widget.theme.backgroundColor,
         child: RotatedBox(
@@ -64,21 +74,63 @@ class _FlipClockWidgetState extends State<FlipClockWidget> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _flipUnit(
-                stream: _minutesController.stream,
-                value: _currentTime.minute,
+                stream: _hoursController.stream,
+                value: _currentTime.hour,
                 baseSize: baseSize,
               ),
               SizedBox(height: spacing),
               _flipUnit(
-                stream: _secondsController.stream,
-                value: _currentTime.second,
+                stream: _minutesController.stream,
+                value: _currentTime.minute,
                 baseSize: baseSize,
               ),
+              SizedBox(height: spacing * 0.5),
+              // SizedBox(width: spacing * 0.5),
+
+              ////
+              // Navigation buttons like PomodoroTimer
+              if (widget.pageController != null)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FloatingActionButton.small(
+                      onPressed: () {
+                        widget.pageController!.animateToPage(
+                          1,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      backgroundColor: widget.currentTheme?.hourHandColor,
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: widget.theme.textColor,
+                      ),
+                    ),
+                    SizedBox(width: spacing * 0.5),
+                    FloatingActionButton.small(
+                      onPressed: () {
+                        widget.pageController!.animateToPage(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      backgroundColor: widget.currentTheme?.minuteHandColor,
+                      child: Icon(
+                        Icons.arrow_forward,
+                        color: widget.theme.textColor,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
       ),
     );
+
+    return clockContent;
   }
 
   Widget _flipUnit({

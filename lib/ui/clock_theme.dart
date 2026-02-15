@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:do_it_now/ui/theme/app_colors.dart';
 
 class ClockTheme {
   final String name;
@@ -26,11 +27,94 @@ class ClockTheme {
   });
 
   static final List<ClockTheme> themes = [
+    // 🌙 Quiet Midnight (Ultra Clean Dark)
+    const ClockTheme(
+      name: "QuietMidnight",
+      backgroundColor: Color(0xFF14141F),
+      secondaryBackgroundColor: Color(0xFF1C1C2B),
+      textColor: Color(0xFFE6E6FA),
+      secondaryTextColor: Color(0xFF8A8AA3),
+      borderColor: Color(0xFF2A2A3D),
+      hourHandColor: Color(0xFFE6E6FA),
+      minuteHandColor: Color(0xFFE6E6FA),
+      secondHandColor: Color(0xFF7C83FD),
+      shadowColor: Colors.black54,
+    ),
+
+    // 🌊 Deep Ocean (Calm Blue)
+    const ClockTheme(
+      name: "DeepOcean",
+      backgroundColor: Color(0xFF0F2027),
+      secondaryBackgroundColor: Color(0xFF132F3D),
+      textColor: Color(0xFFB3E5FC),
+      secondaryTextColor: Color(0xFF4FC3F7),
+      borderColor: Color(0xFF1E88E5),
+      hourHandColor: Color(0xFFB3E5FC),
+      minuteHandColor: Color(0xFFB3E5FC),
+      secondHandColor: Color(0xFFFFCA28),
+      shadowColor: Colors.black45,
+    ),
+
+    // 🌿 Sage Calm (Very Relaxing)
+    const ClockTheme(
+      name: "SageCalm",
+      backgroundColor: Color(0xFF1E2D2F),
+      secondaryBackgroundColor: Color(0xFF263C3F),
+      textColor: Color(0xFFDDE5E2),
+      secondaryTextColor: Color(0xFF9DB8A0),
+      borderColor: Color(0xFF4CAF50),
+      hourHandColor: Color(0xFFDDE5E2),
+      minuteHandColor: Color(0xFFDDE5E2),
+      secondHandColor: Color(0xFFFFB74D),
+      shadowColor: Colors.greenAccent,
+    ),
+
+    // 🌌 Soft Indigo (Modern Tech Look)
+    const ClockTheme(
+      name: "SoftIndigo",
+      backgroundColor: Color(0xFF1A1B2F),
+      secondaryBackgroundColor: Color(0xFF22234A),
+      textColor: Color(0xFFC5CAE9),
+      secondaryTextColor: Color(0xFF7986CB),
+      borderColor: Color(0xFF5C6BC0),
+      hourHandColor: Color(0xFFC5CAE9),
+      minuteHandColor: Color(0xFFC5CAE9),
+      secondHandColor: Color(0xFFFF8A65),
+      shadowColor: Colors.indigoAccent,
+    ),
+
+    // 🪨 Graphite Minimal (Very Premium)
+    const ClockTheme(
+      name: "Graphite",
+      backgroundColor: Color(0xFF181818),
+      secondaryBackgroundColor: Color(0xFF242424),
+      textColor: Color(0xFFE0E0E0),
+      secondaryTextColor: Color(0xFF9E9E9E),
+      borderColor: Color(0xFF424242),
+      hourHandColor: Color(0xFFE0E0E0),
+      minuteHandColor: Color(0xFFE0E0E0),
+      secondHandColor: Color(0xFF64B5F6),
+      shadowColor: Colors.black54,
+    ),
+
+    // 🌅 Warm Dusk (Soft Warm Tone)
+    const ClockTheme(
+      name: "WarmDusk",
+      backgroundColor: Color(0xFF2B1D1D),
+      secondaryBackgroundColor: Color(0xFF3A2626),
+      textColor: Color(0xFFFFE0B2),
+      secondaryTextColor: Color(0xFFFFAB91),
+      borderColor: Color(0xFF8D6E63),
+      hourHandColor: Color(0xFFFFE0B2),
+      minuteHandColor: Color(0xFFFFE0B2),
+      secondHandColor: Color(0xFFEF5350),
+      shadowColor: Colors.deepOrangeAccent,
+    ),
     // 🔹 Classic Light
     const ClockTheme(
       name: "Light",
-      backgroundColor: Color(0xFFF0F4F8),
-      secondaryBackgroundColor: Color(0xFFFFFFFF),
+      backgroundColor: AppColors.background,
+      secondaryBackgroundColor: AppColors.surface,
       textColor: Color(0xFF2C3E50),
       secondaryTextColor: Color(0xFFE0E6ED),
       borderColor: Color(0xFFBDC3C7),
@@ -43,8 +127,8 @@ class ClockTheme {
     // 🔹 Classic Dark
     const ClockTheme(
       name: "Dark",
-      backgroundColor: Color(0xFF121212),
-      secondaryBackgroundColor: Color(0xFF1E1E1E),
+      backgroundColor: AppColors.background,
+      secondaryBackgroundColor: AppColors.surface,
       textColor: Colors.white,
       secondaryTextColor: Color(0xFF424242),
       borderColor: Color(0xFF424242),
@@ -57,8 +141,8 @@ class ClockTheme {
     // 🔹 Neon Glow
     const ClockTheme(
       name: "Neon",
-      backgroundColor: Color(0xFF0D0D0D),
-      secondaryBackgroundColor: Color(0xFF1B1B1B),
+      backgroundColor: AppColors.background,
+      secondaryBackgroundColor: AppColors.surface,
       textColor: Color(0xFF00FFDD), // cyan
       secondaryTextColor: Color(0xFF0F7B7B),
       borderColor: Color(0xFF00FFC6),
@@ -71,8 +155,8 @@ class ClockTheme {
     // 🔹 Soft Pastel
     const ClockTheme(
       name: "Pastel",
-      backgroundColor: Color(0xFFFFF8F0),
-      secondaryBackgroundColor: Color(0xFFFFFFFF),
+      backgroundColor: AppColors.background,
+      secondaryBackgroundColor: AppColors.surface,
       textColor: Color(0xFF6C5B7B),
       secondaryTextColor: Color(0xFFDCD6F7),
       borderColor: Color(0xFFB8B8B8),
@@ -85,8 +169,8 @@ class ClockTheme {
     // 🔹 Elegant Blue
     const ClockTheme(
       name: "ElegantBlue",
-      backgroundColor: Color(0xFF0A1F44),
-      secondaryBackgroundColor: Color(0xFF142850),
+      backgroundColor: AppColors.background,
+      secondaryBackgroundColor: AppColors.surface,
       textColor: Color(0xFFB8D8F8),
       secondaryTextColor: Color(0xFF7EA7D8),
       borderColor: Color(0xFF3E6FB0),
@@ -99,8 +183,8 @@ class ClockTheme {
     // 🔹 Midnight Purple
     const ClockTheme(
       name: "MidnightPurple",
-      backgroundColor: Color(0xFF1A0F2B),
-      secondaryBackgroundColor: Color(0xFF2B1B3D),
+      backgroundColor: AppColors.background,
+      secondaryBackgroundColor: AppColors.surface,
       textColor: Color(0xFFE0C3FC),
       secondaryTextColor: Color(0xFFBFA2FF),
       borderColor: Color(0xFF7D5FFF),
@@ -113,8 +197,8 @@ class ClockTheme {
     // 🔹 Forest Green
     const ClockTheme(
       name: "ForestGreen",
-      backgroundColor: Color(0xFF0B2D0B),
-      secondaryBackgroundColor: Color(0xFF133913),
+      backgroundColor: AppColors.background,
+      secondaryBackgroundColor: AppColors.surface,
       textColor: Color(0xFFA8E6A3),
       secondaryTextColor: Color(0xFF7ACF7A),
       borderColor: Color(0xFF4CAF50),

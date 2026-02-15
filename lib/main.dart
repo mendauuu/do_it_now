@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-
+      // showPerformanceOverlay: true,
       // 🌙 DARK THEME using ClockTheme
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: selectedTheme.backgroundColor,

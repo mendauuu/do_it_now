@@ -1,5 +1,6 @@
 import 'package:do_it_now/ui/to_do_screen/widget/task_form_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:do_it_now/ui/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:do_it_now/ui/hive/task_model.dart';
 
@@ -18,7 +19,7 @@ class _InputTaskState extends State<InputTask> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -48,7 +49,7 @@ class _InputTaskState extends State<InputTask> {
         padding: EdgeInsets.all(14),
         margin: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -60,11 +61,11 @@ class _InputTaskState extends State<InputTask> {
         ),
         child: Row(
           children: [
-            Icon(Icons.add, size: 28, color: Color(0xFF789ABE)),
+            Icon(Icons.add, size: 28, color: AppColors.primary),
             SizedBox(width: 12),
             Text(
               "Add new task",
-              style: TextStyle(fontSize: 16, color: Colors.black87),
+              style: TextStyle(fontSize: 16, color: Colors.white),
             ),
           ],
         ),
