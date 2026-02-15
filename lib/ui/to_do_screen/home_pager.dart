@@ -124,9 +124,14 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
     return Scaffold(
       backgroundColor: currentTheme.backgroundColor,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: currentTheme.hourHandColor,
+        // Use the theme's bright accent color
+        backgroundColor: currentTheme.secondHandColor,
         onPressed: _showThemeSettings,
-        child: Icon(Icons.palette, color: currentTheme.textColor),
+        // Use the deep dark background color for the icon to make it "cut out"
+        child: Icon(
+          Icons.palette,
+          color: currentTheme.backgroundColor,
+        ),
       ),
       body: PageView(
         controller: _pageController,
