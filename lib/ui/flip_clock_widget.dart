@@ -101,10 +101,13 @@ class _FlipClockWidgetState extends State<FlipClockWidget> {
                           curve: Curves.easeInOut,
                         );
                       },
-                      backgroundColor: widget.currentTheme?.hourHandColor,
+                      // Use the darker secondary background so it sits 'on top' of the main background
+                      backgroundColor:
+                          widget.currentTheme?.secondaryBackgroundColor,
                       child: Icon(
                         Icons.arrow_back,
-                        color: widget.theme.textColor,
+                        // Use the bright lavender text color so the arrow 'shines'
+                        color: widget.currentTheme?.textColor,
                       ),
                     ),
                     SizedBox(width: spacing * 0.5),
@@ -116,10 +119,11 @@ class _FlipClockWidgetState extends State<FlipClockWidget> {
                           curve: Curves.easeInOut,
                         );
                       },
-                      backgroundColor: widget.currentTheme?.minuteHandColor,
+                      backgroundColor:
+                          widget.currentTheme?.secondaryBackgroundColor,
                       child: Icon(
                         Icons.arrow_forward,
-                        color: widget.theme.textColor,
+                        color: widget.currentTheme?.textColor,
                       ),
                     ),
                   ],

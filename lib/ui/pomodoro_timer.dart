@@ -139,21 +139,25 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                 children: [
                   FloatingActionButton.small(
                     onPressed: _isRunning ? _pauseTimer : _startTimer,
+                    // High contrast: Bright Blue/Purple when stopped, dark Border color when running
                     backgroundColor: _isRunning
-                        ? widget.theme.secondaryTextColor
-                        : widget.theme.minuteHandColor,
+                        ? widget.theme.borderColor
+                        : widget.theme.secondHandColor,
                     child: Icon(
                       _isRunning ? Icons.pause : Icons.play_arrow,
-                      color: widget.theme.textColor,
+                      // Using the darkest background color for the icon creates a "cut-out" look
+                      color: widget.theme.backgroundColor,
                     ),
                   ),
                   SizedBox(width: spacing * 0.5),
                   FloatingActionButton.small(
                     onPressed: _resetTimer,
-                    backgroundColor: widget.theme.secondHandColor,
+                    // Subdued look: Blends into the theme but stays visible
+                    backgroundColor: widget.theme.secondaryBackgroundColor,
                     child: Icon(
                       Icons.refresh,
-                      color: widget.theme.backgroundColor,
+                      // The icon itself provides the color hint (Blue/Purple)
+                      color: widget.theme.secondHandColor,
                     ),
                   ),
                 ],
