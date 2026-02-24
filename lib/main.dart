@@ -1,8 +1,8 @@
 import 'package:do_it_now/ui/hive/task_model.dart';
-import 'package:do_it_now/ui/to_do_screen/home_pager.dart';
+import 'package:do_it_now/ui/ui_screens/home_main_screen/home_pager.dart';
 import 'package:do_it_now/ui/welcom/splash_screen.dart';
 import 'package:do_it_now/ui/welcom/welcom_screen.dart';
-import 'package:do_it_now/ui/clock_theme.dart';
+import 'package:do_it_now/ui/theme/clock_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -38,7 +38,6 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // showPerformanceOverlay: true,
       // 🌙 DARK THEME using ClockTheme
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: selectedTheme.backgroundColor,

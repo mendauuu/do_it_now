@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-import 'clock_theme.dart';
-import 'flip_panel_plus.dart';
+import '../../theme/clock_theme.dart';
+import '../../widgets/flip_panel_plus.dart';
 
 class FlipClockWidget extends StatefulWidget {
   final ClockTheme theme;

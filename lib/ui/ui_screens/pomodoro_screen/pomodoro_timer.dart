@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-import 'clock_theme.dart';
-import 'flip_panel_plus.dart';
+import '../../theme/clock_theme.dart';
+import '../../widgets/flip_panel_plus.dart';
 
 class PomodoroTimer extends StatefulWidget {
   final ClockTheme theme;
-  final int workDuration; // in minutes
-  final int breakDuration; // in minutes
+  final int workDuration;
+  final int breakDuration;
 
   const PomodoroTimer({
     super.key,
@@ -93,7 +93,6 @@ class _PomodoroTimerState extends State<PomodoroTimer>
       _updateDisplay();
     });
 
-    // Auto-start next session
     Future.delayed(const Duration(milliseconds: 500), _startTimer);
   }
 
