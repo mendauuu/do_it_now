@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../clock_theme.dart';
-import '../../hive/task_model.dart';
+import '../../../theme/clock_theme.dart';
+import '../../../hive/task_model.dart';
 
 class TaskListWidget extends StatelessWidget {
   final Box<TaskModel> taskBox;

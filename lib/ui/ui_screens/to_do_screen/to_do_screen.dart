@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../clock_theme.dart';
-import '../hive/task_model.dart';
+import '../../theme/clock_theme.dart';
+import '../../hive/task_model.dart';
 import 'widget/input_task.dart';
 import 'widget/task_list.dart';
 

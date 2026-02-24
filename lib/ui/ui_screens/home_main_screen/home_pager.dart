@@ -1,9 +1,9 @@
-import 'package:do_it_now/ui/clock_theme.dart';
-import 'package:do_it_now/ui/flip_clock_widget.dart';
-import 'package:do_it_now/ui/pomodoro_timer.dart';
+import 'package:do_it_now/ui/theme/clock_theme.dart';
+import 'package:do_it_now/ui/ui_screens/time_screen/flip_clock_widget.dart';
+import 'package:do_it_now/ui/ui_screens/pomodoro_screen/pomodoro_timer.dart';
 import 'package:flutter/material.dart';
 
-import 'to_do_screen.dart';
+import '../to_do_screen/to_do_screen.dart';
 
 class TodoClockFlip extends StatefulWidget {
   final int currentThemeIndex;
@@ -53,15 +53,6 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: currentTheme.backgroundColor,
-      // floatingActionButton: FloatingActionButton(
-      //   backgroundColor: currentTheme.secondHandColor,
-      //   onPressed: _showThemeSettings,
-      //   child: Icon(
-      //     Icons.palette,
-      //     color: currentTheme.backgroundColor,
-      //   ),
-      // ),
-
       body: PageView(
         controller: _pageController,
         physics: const BouncingScrollPhysics(),

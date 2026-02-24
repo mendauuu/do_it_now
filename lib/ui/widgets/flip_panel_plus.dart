@@ -1,4 +1,4 @@
-library flip_panel_plus;
+// library flip_panel_plus;
 
 import 'package:flutter/material.dart';
 import 'dart:async';
