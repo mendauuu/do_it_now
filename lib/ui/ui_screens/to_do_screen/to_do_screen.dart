@@ -65,51 +65,56 @@ class _TodoPageState extends State<TodoPage> {
           'Select Theme',
           style: TextStyle(color: currentTheme.textColor),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(
-            ClockTheme.themes.length,
-            (index) => GestureDetector(
-              onTap: () {
-                widget.onThemeChanged(index);
-                Navigator.pop(context);
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: widget.currentThemeIndex == index
-                      ? currentTheme.hourHandColor
-                      : currentTheme.backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: currentTheme.borderColor,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: ClockTheme.themes[index].backgroundColor,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: ClockTheme.themes[index].borderColor,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 300),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(
+                ClockTheme.themes.length,
+                (index) => GestureDetector(
+                  onTap: () {
+                    widget.onThemeChanged(index);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: widget.currentThemeIndex == index
+                          ? currentTheme.hourHandColor
+                          : currentTheme.backgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: currentTheme.borderColor,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: ClockTheme.themes[index].backgroundColor,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: ClockTheme.themes[index].borderColor,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Text(
+                          ClockTheme.themes[index].name,
+                          style: TextStyle(
+                            color: currentTheme.textColor,
+                            fontWeight: widget.currentThemeIndex == index
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      ClockTheme.themes[index].name,
-                      style: TextStyle(
-                        color: currentTheme.textColor,
-                        fontWeight: widget.currentThemeIndex == index
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -122,7 +127,10 @@ class _TodoPageState extends State<TodoPage> {
   @override
   void didUpdateWidget(TodoPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.theme != widget.theme) {
+    // if the provided theme or theme index changed, update local currentTheme
+    if (oldWidget.theme != widget.theme ||
+        oldWidget.currentThemeIndex != widget.currentThemeIndex) {
+      currentTheme = ClockTheme.themes[widget.currentThemeIndex];
       setState(() {});
     }
   }

@@ -1,4 +1,5 @@
 import 'package:do_it_now/ui/theme/clock_theme.dart';
+import 'package:do_it_now/ui/ui_screens/analysis/analysis_screen.dart';
 import 'package:do_it_now/ui/ui_screens/time_screen/flip_clock_widget.dart';
 import 'package:do_it_now/ui/ui_screens/pomodoro_screen/pomodoro_timer.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,8 @@ class TodoClockFlip extends StatefulWidget {
 class _TodoClockFlipState extends State<TodoClockFlip> {
   final PageController _pageController = PageController();
   late ClockTheme currentTheme;
+  // keep track of selected theme locally so child widgets can update immediately
+  late int _localThemeIndex;
   int _currentPageIndex = 0;
 
   int get currentPageIndex => _currentPageIndex;
@@ -34,13 +37,26 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
   @override
   void initState() {
     super.initState();
-    currentTheme = ClockTheme.themes[widget.currentThemeIndex];
+    _localThemeIndex = widget.currentThemeIndex;
+    currentTheme = ClockTheme.themes[_localThemeIndex];
 
     _pageController.addListener(() {
       setState(() {
         _currentPageIndex = _pageController.page?.round() ?? 0;
       });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TodoClockFlip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentThemeIndex != widget.currentThemeIndex) {
+      // parent changed the theme index (maybe via navigation or external)
+      _localThemeIndex = widget.currentThemeIndex;
+      setState(() {
+        currentTheme = ClockTheme.themes[_localThemeIndex];
+      });
+    }
   }
 
   @override
@@ -57,6 +73,7 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
         controller: _pageController,
         physics: const BouncingScrollPhysics(),
         children: [
+          AnalysisScreen(theme: currentTheme),
           TodoPage(
             onFlip: () {
               _pageController.previousPage(
@@ -65,7 +82,15 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
               );
             },
             theme: currentTheme,
-            onThemeChanged: (int p1) {},
+            currentThemeIndex: _localThemeIndex,
+            onThemeChanged: (int newIndex) {
+              // update both local state and our ancestor callback
+              _localThemeIndex = newIndex;
+              widget.onThemeChanged(newIndex);
+              setState(() {
+                currentTheme = ClockTheme.themes[newIndex];
+              });
+            },
           ),
           RotatedBox(
             quarterTurns: 3,
