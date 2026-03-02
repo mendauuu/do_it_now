@@ -137,6 +137,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   FloatingActionButton.small(
+                    heroTag: 'pomodoro_play_pause',
                     onPressed: _isRunning ? _pauseTimer : _startTimer,
                     // High contrast: Bright Blue/Purple when stopped, dark Border color when running
                     backgroundColor: _isRunning
@@ -150,6 +151,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                   ),
                   SizedBox(width: spacing * 0.5),
                   FloatingActionButton.small(
+                    heroTag: 'pomodoro_reset',
                     onPressed: _resetTimer,
                     // Subdued look: Blends into the theme but stays visible
                     backgroundColor: widget.theme.secondaryBackgroundColor,

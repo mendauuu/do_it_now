@@ -1,5 +1,4 @@
 import 'package:do_it_now/ui/theme/clock_theme.dart';
-import 'package:do_it_now/ui/ui_screens/analysis/analysis_screen.dart';
 import 'package:do_it_now/ui/ui_screens/time_screen/flip_clock_widget.dart';
 import 'package:do_it_now/ui/ui_screens/pomodoro_screen/pomodoro_timer.dart';
 import 'package:flutter/material.dart';
@@ -73,7 +72,6 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
         controller: _pageController,
         physics: const BouncingScrollPhysics(),
         children: [
-          AnalysisScreen(theme: currentTheme),
           TodoPage(
             onFlip: () {
               _pageController.previousPage(
@@ -84,7 +82,6 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
             theme: currentTheme,
             currentThemeIndex: _localThemeIndex,
             onThemeChanged: (int newIndex) {
-              // update both local state and our ancestor callback
               _localThemeIndex = newIndex;
               widget.onThemeChanged(newIndex);
               setState(() {
