@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:do_it_now/data/database/database_initializer.dart';
+import 'package:do_it_now/data/models/task_statistics.dart';
 import '../../theme/clock_theme.dart';
 
 class AnalysisScreen extends StatefulWidget {
@@ -14,6 +17,13 @@ class AnalysisScreen extends StatefulWidget {
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
   String filter = "Week";
+  TaskStatistics? _stats;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +44,23 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔥 Title
-              Text(
-                "Productivity Analytics",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: widget.theme.textColor,
-                ),
+              // 🔥 Title + refresh
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Productivity Analytics",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: widget.theme.textColor,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.refresh, color: widget.theme.textColor),
+                    onPressed: _init,
+                  ),
+                ],
               ),
 
               const SizedBox(height: 20),
@@ -113,12 +132,37 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       crossAxisSpacing: 15,
       childAspectRatio: 1.3,
       children: [
-        _summaryCard("Total Tasks", "124"),
-        _summaryCard("Completed", "92"),
-        _summaryCard("Pending", "32"),
-        _summaryCard("Completion Rate", "74%"),
+        _summaryCard("Total Tasks", _stats?.totalTasks.toString() ?? '--'),
+        _summaryCard("Completed", _stats?.completedTasks.toString() ?? '--'),
+        _summaryCard("Pending", _stats?.pendingTasks.toString() ?? '--'),
+        _summaryCard(
+          "Completion Rate",
+          _stats != null
+              ? '${(_stats!.totalTasks > 0 ? ((_stats!.completedTasks * 100) / _stats!.totalTasks).round() : 0)}%'
+              : '--',
+        ),
       ],
     );
+  }
+
+  Future<void> _init() async {
+    final s = await _loadStatistics();
+    if (!mounted) return;
+    setState(() => _stats = s);
+  }
+
+  Future<TaskStatistics?> _loadStatistics() async {
+    try {
+      final s = await DatabaseInitializer.getStatistics();
+      return s;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Widget _summaryCard(String title, String value) {

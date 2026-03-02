@@ -5,13 +5,18 @@ import 'package:do_it_now/ui/welcom/welcom_screen.dart';
 import 'package:do_it_now/ui/theme/clock_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:do_it_now/data/database/database_initializer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Hive (keep for now, will migrate to SQL)
   await Hive.initFlutter();
   Hive.registerAdapter(TaskModelAdapter());
   await Hive.openBox<TaskModel>('tasks');
+
+  // Initialize SQL Database
+  await DatabaseInitializer.initialize();
 
   runApp(const MyApp());
 }

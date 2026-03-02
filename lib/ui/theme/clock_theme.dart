@@ -1,17 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:do_it_now/ui/theme/app_colors.dart';
 
 class ClockTheme {
   final String name;
+  // Primary Colors
   final Color backgroundColor;
   final Color secondaryBackgroundColor;
   final Color textColor;
   final Color secondaryTextColor;
+
+  // Clock Elements
   final Color borderColor;
   final Color hourHandColor;
   final Color minuteHandColor;
   final Color secondHandColor;
+  final Color centerDotColor;
+
+  // Accent & Highlights
+  final Color accentColor;
+  final Color highlightColor;
+  final Color glowColor;
+
+  // Status Colors
+  final Color successColor;
+  final Color errorColor;
+  final Color warningColor;
+  final Color infoColor;
+
+  // UI Elements
+  final Color cardColor;
+  final Color buttonColor;
+  final Color buttonHoverColor;
+  final Color inputFieldColor;
+
+  // Effects
   final Color? shadowColor;
+  final Color overlayColor;
 
   const ClockTheme({
     required this.name,
@@ -23,6 +46,19 @@ class ClockTheme {
     required this.hourHandColor,
     required this.minuteHandColor,
     required this.secondHandColor,
+    required this.centerDotColor,
+    required this.accentColor,
+    required this.highlightColor,
+    required this.glowColor,
+    required this.successColor,
+    required this.errorColor,
+    required this.warningColor,
+    required this.infoColor,
+    required this.cardColor,
+    required this.buttonColor,
+    required this.buttonHoverColor,
+    required this.inputFieldColor,
+    required this.overlayColor,
     this.shadowColor,
   });
 
@@ -36,8 +72,21 @@ class ClockTheme {
       secondaryTextColor: Color(0xFF8A8AA3),
       borderColor: Color(0xFF2A2A3D),
       hourHandColor: Color(0xFFE6E6FA),
-      minuteHandColor: Color(0xFFE6E6FA),
+      minuteHandColor: Color(0xFFB8B8D6),
       secondHandColor: Color(0xFF7C83FD),
+      centerDotColor: Color(0xFF7C83FD),
+      accentColor: Color(0xFF7C83FD),
+      highlightColor: Color(0xFFA8AFFF),
+      glowColor: Color(0xFF5C63DD),
+      successColor: Color(0xFF00D084),
+      errorColor: Color(0xFFFF6B6B),
+      warningColor: Color(0xFFFFD93D),
+      infoColor: Color(0xFF6BCB77),
+      cardColor: Color(0xFF1C1C2B),
+      buttonColor: Color(0xFF7C83FD),
+      buttonHoverColor: Color(0xFFA8AFFF),
+      inputFieldColor: Color(0xFF242432),
+      overlayColor: Color(0xFF000000),
       shadowColor: Colors.black54,
     ),
 
@@ -50,8 +99,21 @@ class ClockTheme {
       secondaryTextColor: Color(0xFF4FC3F7),
       borderColor: Color(0xFF1E88E5),
       hourHandColor: Color(0xFFB3E5FC),
-      minuteHandColor: Color(0xFFB3E5FC),
+      minuteHandColor: Color(0xFF81D4FA),
       secondHandColor: Color(0xFFFFCA28),
+      centerDotColor: Color(0xFFFFCA28),
+      accentColor: Color(0xFF1E88E5),
+      highlightColor: Color(0xFF42A5F5),
+      glowColor: Color(0xFF0097A7),
+      successColor: Color(0xFF26A69A),
+      errorColor: Color(0xFFEF5350),
+      warningColor: Color(0xFFFFCA28),
+      infoColor: Color(0xFF29B6F6),
+      cardColor: Color(0xFF132F3D),
+      buttonColor: Color(0xFF1E88E5),
+      buttonHoverColor: Color(0xFF42A5F5),
+      inputFieldColor: Color(0xFF1B3A47),
+      overlayColor: Color(0xFF000000),
       shadowColor: Colors.black45,
     ),
 
@@ -64,8 +126,21 @@ class ClockTheme {
       secondaryTextColor: Color(0xFF9DB8A0),
       borderColor: Color(0xFF4CAF50),
       hourHandColor: Color(0xFFDDE5E2),
-      minuteHandColor: Color(0xFFDDE5E2),
+      minuteHandColor: Color(0xFFC8D5D0),
       secondHandColor: Color(0xFFFFB74D),
+      centerDotColor: Color(0xFF4CAF50),
+      accentColor: Color(0xFF4CAF50),
+      highlightColor: Color(0xFF66BB6A),
+      glowColor: Color(0xFF388E3C),
+      successColor: Color(0xFF81C784),
+      errorColor: Color(0xFFE57373),
+      warningColor: Color(0xFFFFB74D),
+      infoColor: Color(0xFF64B5F6),
+      cardColor: Color(0xFF263C3F),
+      buttonColor: Color(0xFF4CAF50),
+      buttonHoverColor: Color(0xFF66BB6A),
+      inputFieldColor: Color(0xFF2C3E42),
+      overlayColor: Color(0xFF000000),
       shadowColor: Colors.greenAccent,
     ),
 
@@ -78,8 +153,21 @@ class ClockTheme {
       secondaryTextColor: Color(0xFF7986CB),
       borderColor: Color(0xFF5C6BC0),
       hourHandColor: Color(0xFFC5CAE9),
-      minuteHandColor: Color(0xFFC5CAE9),
+      minuteHandColor: Color(0xFF9FA8DA),
       secondHandColor: Color(0xFFFF8A65),
+      centerDotColor: Color(0xFFFF8A65),
+      accentColor: Color(0xFF5C6BC0),
+      highlightColor: Color(0xFF7986CB),
+      glowColor: Color(0xFF3F51B5),
+      successColor: Color(0xFF81C784),
+      errorColor: Color(0xFFEF5350),
+      warningColor: Color(0xFFFFCA28),
+      infoColor: Color(0xFF29B6F6),
+      cardColor: Color(0xFF22234A),
+      buttonColor: Color(0xFF5C6BC0),
+      buttonHoverColor: Color(0xFF7986CB),
+      inputFieldColor: Color(0xFF2A2B50),
+      overlayColor: Color(0xFF000000),
       shadowColor: Colors.indigoAccent,
     ),
 
@@ -92,125 +180,55 @@ class ClockTheme {
       secondaryTextColor: Color(0xFF9E9E9E),
       borderColor: Color(0xFF424242),
       hourHandColor: Color(0xFFE0E0E0),
-      minuteHandColor: Color(0xFFE0E0E0),
+      minuteHandColor: Color(0xFFBDBDBD),
       secondHandColor: Color(0xFF64B5F6),
+      centerDotColor: Color(0xFF64B5F6),
+      accentColor: Color(0xFF64B5F6),
+      highlightColor: Color(0xFF90CAF9),
+      glowColor: Color(0xFF2196F3),
+      successColor: Color(0xFF4CAF50),
+      errorColor: Color(0xFFE53935),
+      warningColor: Color(0xFFFFA726),
+      infoColor: Color(0xFF42A5F5),
+      cardColor: Color(0xFF242424),
+      buttonColor: Color(0xFF64B5F6),
+      buttonHoverColor: Color(0xFF90CAF9),
+      inputFieldColor: Color(0xFF2C2C2C),
+      overlayColor: Color(0xFF000000),
       shadowColor: Colors.black54,
     ),
 
     // 🌅 Warm Dusk (Soft Warm Tone)
     const ClockTheme(
       name: "WarmDusk",
-      backgroundColor: Color(0xFF2B1D1D),
-      secondaryBackgroundColor: Color(0xFF3A2626),
-      textColor: Color(0xFFFFE0B2),
-      secondaryTextColor: Color(0xFFFFAB91),
-      borderColor: Color(0xFF8D6E63),
-      hourHandColor: Color(0xFFFFE0B2),
-      minuteHandColor: Color(0xFFFFE0B2),
-      secondHandColor: Color(0xFFEF5350),
-      shadowColor: Colors.deepOrangeAccent,
-    ),
-    // 🔹 Classic Light
-    const ClockTheme(
-      name: "Light",
-      backgroundColor: AppColors.background,
-      secondaryBackgroundColor: AppColors.surface,
-      textColor: Color(0xFF2C3E50),
-      secondaryTextColor: Color(0xFFE0E6ED),
-      borderColor: Color(0xFFBDC3C7),
-      hourHandColor: Color(0xFF2C3E50),
-      minuteHandColor: Color(0xFF2C3E50),
-      secondHandColor: Color(0xFFE74C3C),
-      shadowColor: Colors.black26,
-    ),
-
-    // 🔹 Classic Dark
-    const ClockTheme(
-      name: "Dark",
-      backgroundColor: AppColors.background,
-      secondaryBackgroundColor: AppColors.surface,
-      textColor: Colors.white,
-      secondaryTextColor: Color(0xFF424242),
-      borderColor: Color(0xFF424242),
-      hourHandColor: Colors.white,
-      minuteHandColor: Colors.white,
-      secondHandColor: Color(0xFFFF5252),
-      shadowColor: Colors.black45,
-    ),
-
-    // 🔹 Neon Glow
-    const ClockTheme(
-      name: "Neon",
-      backgroundColor: AppColors.background,
-      secondaryBackgroundColor: AppColors.surface,
-      textColor: Color(0xFF00FFDD), // cyan
-      secondaryTextColor: Color(0xFF0F7B7B),
-      borderColor: Color(0xFF00FFC6),
-      hourHandColor: Color(0xFF00FFDD),
-      minuteHandColor: Color(0xFF00FFDD),
-      secondHandColor: Color(0xFFFF00FF), // magenta
-      shadowColor: Colors.cyanAccent,
-    ),
-
-    // 🔹 Soft Pastel
-    const ClockTheme(
-      name: "Pastel",
-      backgroundColor: AppColors.background,
-      secondaryBackgroundColor: AppColors.surface,
-      textColor: Color(0xFF6C5B7B),
-      secondaryTextColor: Color(0xFFDCD6F7),
-      borderColor: Color(0xFFB8B8B8),
-      hourHandColor: Color(0xFF6C5B7B),
-      minuteHandColor: Color(0xFF6C5B7B),
-      secondHandColor: Color(0xFFE56B6F),
-      shadowColor: Colors.grey,
-    ),
-
-    // 🔹 Elegant Blue
-    const ClockTheme(
-      name: "ElegantBlue",
-      backgroundColor: AppColors.background,
-      secondaryBackgroundColor: AppColors.surface,
-      textColor: Color(0xFFB8D8F8),
-      secondaryTextColor: Color(0xFF7EA7D8),
-      borderColor: Color(0xFF3E6FB0),
-      hourHandColor: Color(0xFFB8D8F8),
-      minuteHandColor: Color(0xFFB8D8F8),
-      secondHandColor: Color(0xFFFFC947),
-      shadowColor: Colors.black45,
-    ),
-
-    // 🔹 Midnight Purple
-    const ClockTheme(
-      name: "MidnightPurple",
-      backgroundColor: AppColors.background,
-      secondaryBackgroundColor: AppColors.surface,
-      textColor: Color(0xFFE0C3FC),
-      secondaryTextColor: Color(0xFFBFA2FF),
-      borderColor: Color(0xFF7D5FFF),
-      hourHandColor: Color(0xFFE0C3FC),
-      minuteHandColor: Color(0xFFE0C3FC),
-      secondHandColor: Color(0xFFFF6B6B),
-      shadowColor: Colors.purpleAccent,
-    ),
-
-    // 🔹 Forest Green
-    const ClockTheme(
-      name: "ForestGreen",
-      backgroundColor: AppColors.background,
-      secondaryBackgroundColor: AppColors.surface,
-      textColor: Color(0xFFA8E6A3),
-      secondaryTextColor: Color(0xFF7ACF7A),
-      borderColor: Color(0xFF4CAF50),
-      hourHandColor: Color(0xFFA8E6A3),
-      minuteHandColor: Color(0xFFA8E6A3),
-      secondHandColor: Color(0xFFFFC107),
-      shadowColor: Colors.greenAccent,
+      backgroundColor: Color(0xFF2C1B1B),
+      secondaryBackgroundColor: Color(0xFF3D2B2A),
+      textColor: Color(0xFFFFD7B5),
+      secondaryTextColor: Color(0xFFD4A574),
+      borderColor: Color(0xFFC17A6B),
+      hourHandColor: Color(0xFFFFD7B5),
+      minuteHandColor: Color(0xFFE6C3A0),
+      secondHandColor: Color(0xFFFFAB91),
+      centerDotColor: Color(0xFFC17A6B),
+      accentColor: Color(0xFFC17A6B),
+      highlightColor: Color(0xFFD4956B),
+      glowColor: Color(0xFFA1614F),
+      successColor: Color(0xFF81C784),
+      errorColor: Color(0xFFE74C3C),
+      warningColor: Color(0xFFF39C12),
+      infoColor: Color(0xFF3498DB),
+      cardColor: Color(0xFF3D2B2A),
+      buttonColor: Color(0xFFC17A6B),
+      buttonHoverColor: Color(0xFFD4956B),
+      inputFieldColor: Color(0xFF4A3534),
+      overlayColor: Color(0xFF000000),
+      shadowColor: Color(0xFF8B4513),
     ),
   ];
 
   // Convenience getter
-  static ClockTheme get dark => themes.firstWhere((t) => t.name == "Dark");
+  static ClockTheme get dark =>
+      themes.firstWhere((t) => t.name == "QuietMidnight");
 
   @override
   bool operator ==(Object other) =>

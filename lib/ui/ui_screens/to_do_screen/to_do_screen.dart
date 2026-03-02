@@ -1,10 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../../theme/clock_theme.dart';
-import '../../hive/task_model.dart';
+import 'package:do_it_now/data/database/database_initializer.dart';
 import 'widget/input_task.dart';
 import 'widget/task_list.dart';
+import 'pages/settings_page.dart';
 
 class TodoPage extends StatefulWidget {
   final VoidCallback onFlip;
@@ -24,11 +26,9 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage> {
-  final Box<TaskModel> _taskBox = Hive.box<TaskModel>('tasks');
   final TextEditingController _controller = TextEditingController();
   final PageController _pageController = PageController();
   late ClockTheme currentTheme;
-  int _currentPageIndex = 0;
 
   @override
   void initState() {
@@ -37,7 +37,7 @@ class _TodoPageState extends State<TodoPage> {
 
     _pageController.addListener(() {
       setState(() {
-        _currentPageIndex = _pageController.page?.round() ?? 0;
+        _pageController.page?.round() ?? 0;
       });
     });
 
@@ -45,8 +45,8 @@ class _TodoPageState extends State<TodoPage> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
-  void _removeTask(int index) {
-    _taskBox.deleteAt(index);
+  void _removeTask(int index) async {
+    await DatabaseInitializer.deleteTask(index);
     setState(() {});
   }
 
@@ -56,69 +56,14 @@ class _TodoPageState extends State<TodoPage> {
     super.dispose();
   }
 
-  void _showThemeSettings() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: currentTheme.secondaryBackgroundColor,
-        title: Text(
-          'Select Theme',
-          style: TextStyle(color: currentTheme.textColor),
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 300),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(
-                ClockTheme.themes.length,
-                (index) => GestureDetector(
-                  onTap: () {
-                    widget.onThemeChanged(index);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: widget.currentThemeIndex == index
-                          ? currentTheme.hourHandColor
-                          : currentTheme.backgroundColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: currentTheme.borderColor,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: ClockTheme.themes[index].backgroundColor,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: ClockTheme.themes[index].borderColor,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          ClockTheme.themes[index].name,
-                          style: TextStyle(
-                            color: currentTheme.textColor,
-                            fontWeight: widget.currentThemeIndex == index
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SettingsPage(
+          currentThemeIndex: widget.currentThemeIndex,
+          onThemeChanged: widget.onThemeChanged,
+          theme: currentTheme,
         ),
       ),
     );
@@ -138,52 +83,74 @@ class _TodoPageState extends State<TodoPage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 600, // Fixed height for FlipCard
+      height: 600,
       width: 360,
       decoration: BoxDecoration(
         color: widget.theme.backgroundColor,
-        // borderRadius: BorderRadius.circular(24),
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: Colors.black.withOpacity(0.4),
-        //     blurRadius: 20,
-        //     offset: const Offset(0, 10),
-        //   ),
-        // ],
       ),
       child: Scaffold(
         backgroundColor: widget.theme.backgroundColor,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          // elevation: 0,
-
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: GestureDetector(
-                onTap: _showThemeSettings,
-                child: Icon(
-                  Icons.palette,
-                  color: widget.theme.secondHandColor,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(80),
+          child: ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: widget.theme.borderColor.withOpacity(0.2),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Do it now",
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _openSettings,
+                      child: TweenAnimationBuilder(
+                        tween: Tween<double>(begin: 0.9, end: 1),
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOutBack,
+                        builder: (context, scale, child) {
+                          return Transform.scale(
+                            scale: scale,
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.settings_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-          title: Text(
-            "Do it now",
-            style: TextStyle(color: widget.theme.textColor),
           ),
-          centerTitle: true,
         ),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              InputTask(_controller),
+              InputTask(_controller, theme: widget.theme),
               const SizedBox(height: 16),
               Flexible(
                 child: TaskListWidget(
-                  taskBox: _taskBox,
                   removeTaskCallback: _removeTask,
                   theme: widget.theme,
                 ),

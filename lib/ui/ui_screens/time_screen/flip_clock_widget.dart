@@ -94,6 +94,7 @@ class _FlipClockWidgetState extends State<FlipClockWidget> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     FloatingActionButton.small(
+                      heroTag: 'flip_clock_back',
                       onPressed: () {
                         widget.pageController!.animateToPage(
                           1,
@@ -112,6 +113,7 @@ class _FlipClockWidgetState extends State<FlipClockWidget> {
                     ),
                     SizedBox(width: spacing * 0.5),
                     FloatingActionButton.small(
+                      heroTag: 'flip_clock_forward',
                       onPressed: () {
                         widget.pageController!.animateToPage(
                           0,
