@@ -2,8 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../theme/clock_theme.dart';
-import 'package:do_it_now/data/database/database_initializer.dart';
+import '../../../blocs/task_bloc.dart';
 import 'widget/input_task.dart';
 import 'widget/task_list.dart';
 import 'pages/settings_page.dart';
@@ -29,11 +31,14 @@ class _TodoPageState extends State<TodoPage> {
   final TextEditingController _controller = TextEditingController();
   final PageController _pageController = PageController();
   late ClockTheme currentTheme;
+  late TaskBloc _taskBloc;
 
   @override
   void initState() {
     super.initState();
     currentTheme = ClockTheme.themes[widget.currentThemeIndex];
+
+    _taskBloc = TaskBloc()..add(LoadTasks());
 
     _pageController.addListener(() {
       setState(() {
@@ -45,14 +50,12 @@ class _TodoPageState extends State<TodoPage> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
-  void _removeTask(int index) async {
-    await DatabaseInitializer.deleteTask(index);
-    setState(() {});
-  }
+  // now handled via bloc
 
   @override
   void dispose() {
     _pageController.dispose();
+    _taskBloc.close();
     super.dispose();
   }
 
@@ -91,50 +94,64 @@ class _TodoPageState extends State<TodoPage> {
       child: Scaffold(
         backgroundColor: widget.theme.backgroundColor,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(80),
+          preferredSize: const Size.fromHeight(70),
           child: ClipRRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
-                padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: widget.theme.borderColor.withOpacity(0.2),
+                      color: widget.theme.borderColor.withValues(alpha: 0.15),
                     ),
                   ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Do it now",
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        color: Colors.white,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Do it now",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                            height: 1.0,
+                            color: widget.theme.textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Stay focused",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            color: widget.theme.secondaryTextColor,
+                            letterSpacing: 0.3,
+                            height: 1.0,
+                          ),
+                        ),
+                      ],
                     ),
-                    GestureDetector(
-                      onTap: _openSettings,
-                      child: TweenAnimationBuilder(
-                        tween: Tween<double>(begin: 0.9, end: 1),
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeOutBack,
-                        builder: (context, scale, child) {
-                          return Transform.scale(
-                            scale: scale,
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              child: const Icon(
-                                Icons.settings_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          );
-                        },
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _openSettings,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Icon(
+                            Icons.settings_rounded,
+                            color: widget.theme.buttonColor,
+                            size: 22,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -143,19 +160,19 @@ class _TodoPageState extends State<TodoPage> {
             ),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              InputTask(_controller, theme: widget.theme),
-              const SizedBox(height: 16),
-              Flexible(
-                child: TaskListWidget(
-                  removeTaskCallback: _removeTask,
-                  theme: widget.theme,
+        body: BlocProvider.value(
+          value: _taskBloc,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              children: [
+                InputTask(_controller, theme: widget.theme),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: TaskListWidget(theme: widget.theme),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
