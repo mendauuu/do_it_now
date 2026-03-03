@@ -1,7 +1,8 @@
 import 'package:do_it_now/ui/ui_screens/to_do_screen/widget/task_form_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:do_it_now/data/database/database_initializer.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../theme/clock_theme.dart';
+import '../../../../blocs/task_bloc.dart';
 
 class InputTask extends StatefulWidget {
   final TextEditingController controller;
@@ -28,56 +29,84 @@ class _InputTaskState extends State<InputTask> {
   }
 
   void _addTask(String title, String description, int priority) async {
-    await DatabaseInitializer.createTask(
-      title: title,
-      description: description,
-      priority: priority,
-    );
-
-    setState(() {});
+    // dispatch event to TaskBloc
+    context.read<TaskBloc>().add(AddTask(title, description, priority));
+    // give immediate feedback
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Task added!'),
+          backgroundColor: widget.theme.successColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _openTaskForm,
-      child: Container(
-        padding: EdgeInsets.all(14),
-        margin: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: widget.theme.inputFieldColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: widget.theme.borderColor.withOpacity(0.3)),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  widget.theme.shadowColor?.withOpacity(0.2) ?? Colors.black26,
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: widget.theme.buttonColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.add_circle_outline,
-                  size: 24, color: widget.theme.buttonColor),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openTaskForm,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                widget.theme.inputFieldColor,
+                widget.theme.inputFieldColor.withValues(alpha: 0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            SizedBox(width: 12),
-            Text(
-              "Add new task",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: widget.theme.textColor,
-              ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: widget.theme.buttonColor.withValues(alpha: 0.2),
+              width: 1.5,
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: widget.theme.buttonColor.withValues(alpha: 0.1),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: widget.theme.buttonColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 22,
+                  color: widget.theme.buttonColor,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  "Add a new task",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: widget.theme.textColor,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_rounded,
+                size: 18,
+                color: widget.theme.buttonColor.withValues(alpha: 0.6),
+              ),
+            ],
+          ),
         ),
       ),
     );

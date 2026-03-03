@@ -161,20 +161,12 @@ class DualRepository {
           isDone: isDone,
         );
 
-        // Update in Hive
+        // Update in Hive (primary source)
         await _hiveBox.putAt(index, updatedTask);
 
-        // Also update in SQL
-        final sqlTask = _convertHiveToSQL(updatedTask);
-        if (_useSqlAsSource) {
-          await _sqlRepository.updateTask(sqlTask);
-        } else {
-          try {
-            await _sqlRepository.updateTask(sqlTask);
-          } catch (e) {
-            // Sync error, but Hive is updated
-          }
-        }
+        // Skip SQL update for toggle during migration
+        // SQL updates will use toggleTaskCompletion with actual ID, not index
+        // This prevents null ID errors during dual-source migration
       }
     } catch (e) {
       throw Exception('Failed to toggle task: $e');
