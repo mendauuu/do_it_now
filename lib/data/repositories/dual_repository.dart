@@ -164,9 +164,29 @@ class DualRepository {
         // Update in Hive (primary source)
         await _hiveBox.putAt(index, updatedTask);
 
-        // Skip SQL update for toggle during migration
-        // SQL updates will use toggleTaskCompletion with actual ID, not index
-        // This prevents null ID errors during dual-source migration
+        // Also update in SQL for consistency - fetch task by title and update
+        try {
+          final sqlTasks = await _sqlRepository.getAllTasks();
+          // Find the matching task in SQL by title (since we don't have IDs in Hive)
+          final matchingSqlTask = sqlTasks.firstWhere(
+            (sqlTask) => sqlTask.title == task.title,
+            orElse: () => throw Exception('Task not found in SQL'),
+          );
+
+          final now = DateTime.now();
+          final updatedSqlTask = matchingSqlTask.copyWith(
+            isDone: isDone,
+            completedDate: isDone ? now : null,
+            completedTimestamp:
+                isDone ? now.millisecondsSinceEpoch ~/ 1000 : null,
+          );
+
+          await _sqlRepository.updateTask(updatedSqlTask);
+          print('✅ Task toggled in SQL: ${task.title}');
+        } catch (e) {
+          // Log but don't fail - SQL sync is best-effort during migration
+          print('⚠️ SQL sync during toggle: $e');
+        }
       }
     } catch (e) {
       throw Exception('Failed to toggle task: $e');
