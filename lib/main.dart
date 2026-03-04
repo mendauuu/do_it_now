@@ -5,6 +5,7 @@ import 'package:do_it_now/ui/welcom/welcom_screen.dart';
 import 'package:do_it_now/ui/theme/clock_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:do_it_now/data/database/database_initializer.dart';
 
 Future<void> main() async {
@@ -31,7 +32,23 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   int _selectedThemeIndex = 1; // Dark theme by default
 
-  void _changeTheme(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _loadThemePreference();
+  }
+
+  Future<void> _loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedThemeIndex = prefs.getInt('selectedThemeIndex') ?? 1;
+    setState(() {
+      _selectedThemeIndex = savedThemeIndex;
+    });
+  }
+
+  Future<void> _changeTheme(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('selectedThemeIndex', index);
     setState(() {
       _selectedThemeIndex = index;
     });

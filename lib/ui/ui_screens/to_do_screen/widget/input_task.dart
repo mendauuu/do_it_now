@@ -63,7 +63,7 @@ class _InputTaskState extends State<InputTask> {
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: widget.theme.buttonColor.withValues(alpha: 0.2),
+              color: widget.theme.borderColor.withValues(alpha: 0.2),
               width: 1.5,
             ),
             boxShadow: [
