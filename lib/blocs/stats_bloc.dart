@@ -17,6 +17,13 @@ class LoadStats extends StatsEvent {
   List<Object?> get props => [filter];
 }
 
+class ChangeFilter extends StatsEvent {
+  final String filter; // "Week" "Month" "All"
+  const ChangeFilter(this.filter);
+  @override
+  List<Object?> get props => [filter];
+}
+
 // STATES
 abstract class StatsState extends Equatable {
   const StatsState();
@@ -24,33 +31,46 @@ abstract class StatsState extends Equatable {
   List<Object?> get props => [];
 }
 
-class StatsInitial extends StatsState {}
+class StatsInitial extends StatsState {
+  final String filter;
+  const StatsInitial({this.filter = "Week"});
+  @override
+  List<Object?> get props => [filter];
+}
 
-class StatsLoadInProgress extends StatsState {}
+class StatsLoadInProgress extends StatsState {
+  final String filter;
+  const StatsLoadInProgress(this.filter);
+  @override
+  List<Object?> get props => [filter];
+}
 
 class StatsLoadSuccess extends StatsState {
   final TaskStatistics stats;
   final int streak;
-  const StatsLoadSuccess(this.stats, this.streak);
+  final String filter;
+  const StatsLoadSuccess(this.stats, this.streak, this.filter);
   @override
-  List<Object?> get props => [stats, streak];
+  List<Object?> get props => [stats, streak, filter];
 }
 
 class StatsOperationFailure extends StatsState {
   final String error;
-  const StatsOperationFailure(this.error);
+  final String filter;
+  const StatsOperationFailure(this.error, this.filter);
   @override
-  List<Object?> get props => [error];
+  List<Object?> get props => [error, filter];
 }
 
 // BLOC
 class StatsBloc extends Bloc<StatsEvent, StatsState> {
-  StatsBloc() : super(StatsInitial()) {
+  StatsBloc() : super(const StatsInitial()) {
     on<LoadStats>(_onLoadStats);
+    on<ChangeFilter>(_onChangeFilter);
   }
 
   Future<void> _onLoadStats(LoadStats event, Emitter<StatsState> emit) async {
-    emit(StatsLoadInProgress());
+    emit(StatsLoadInProgress(event.filter));
     try {
       TaskStatistics stats;
       if (event.filter == "Week") {
@@ -61,9 +81,20 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
         stats = await DatabaseInitializer.getStatistics();
       }
       final streak = await DatabaseInitializer.getStreak();
-      emit(StatsLoadSuccess(stats, streak));
+      emit(StatsLoadSuccess(stats, streak, event.filter));
     } catch (e) {
-      emit(StatsOperationFailure(e.toString()));
+      emit(StatsOperationFailure(e.toString(), event.filter));
     }
+  }
+
+  Future<void> _onChangeFilter(
+      ChangeFilter event, Emitter<StatsState> emit) async {
+    // If we're already in the same filter, don't reload
+    if (state is StatsLoadSuccess &&
+        (state as StatsLoadSuccess).filter == event.filter) {
+      return;
+    }
+    // Load stats for the new filter
+    add(LoadStats(event.filter));
   }
 }
