@@ -7,19 +7,35 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:do_it_now/data/database/database_initializer.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'blocs/task_bloc.dart';
+import 'blocs/stats_bloc.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive (keep for now, will migrate to SQL)
+  // Hive
   await Hive.initFlutter();
   Hive.registerAdapter(TaskModelAdapter());
   await Hive.openBox<TaskModel>('tasks');
 
-  // Initialize SQL Database
+  // SQL
   await DatabaseInitializer.initialize();
 
-  runApp(const MyApp());
+  runApp(
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<TaskBloc>(
+          create: (_) => TaskBloc()..add(LoadTasks()),
+        ),
+        BlocProvider<StatsBloc>(
+          create: (_) => StatsBloc(),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -30,7 +46,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  int _selectedThemeIndex = 1; // Dark theme by default
+  int _selectedThemeIndex = 1;
 
   @override
   void initState() {
@@ -41,6 +57,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _loadThemePreference() async {
     final prefs = await SharedPreferences.getInstance();
     final savedThemeIndex = prefs.getInt('selectedThemeIndex') ?? 1;
+
     setState(() {
       _selectedThemeIndex = savedThemeIndex;
     });
@@ -49,6 +66,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _changeTheme(int index) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('selectedThemeIndex', index);
+
     setState(() {
       _selectedThemeIndex = index;
     });
@@ -60,31 +78,12 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // 🌙 DARK THEME using ClockTheme
+      title: 'To-Do App',
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: selectedTheme.backgroundColor,
         primaryColor: selectedTheme.hourHandColor,
-        colorScheme: ColorScheme.dark(
-          background: selectedTheme.backgroundColor,
-          surface: selectedTheme.secondaryBackgroundColor,
-          primary: selectedTheme.hourHandColor,
-          secondary: selectedTheme.secondHandColor,
-        ),
         cardColor: selectedTheme.secondaryBackgroundColor,
-        textTheme: TextTheme(
-          bodyLarge: TextStyle(
-            color: selectedTheme.textColor,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-          bodyMedium: TextStyle(
-            color: selectedTheme.secondaryTextColor,
-            fontSize: 16,
-          ),
-        ),
       ),
-
-      title: 'To-Do App',
       initialRoute: '/',
       routes: {
         '/': (context) => SplashScreen(),
