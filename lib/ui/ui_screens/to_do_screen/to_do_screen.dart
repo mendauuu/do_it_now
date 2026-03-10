@@ -2,10 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../theme/clock_theme.dart';
-import '../../../blocs/task_bloc.dart';
 import 'widget/input_task.dart';
 import 'widget/task_list.dart';
 import 'pages/settings_page.dart';
@@ -31,14 +29,11 @@ class _TodoPageState extends State<TodoPage> {
   final TextEditingController _controller = TextEditingController();
   final PageController _pageController = PageController();
   late ClockTheme currentTheme;
-  late TaskBloc _taskBloc;
 
   @override
   void initState() {
     super.initState();
     currentTheme = ClockTheme.themes[widget.currentThemeIndex];
-
-    _taskBloc = TaskBloc()..add(LoadTasks());
 
     _pageController.addListener(() {
       setState(() {
@@ -55,7 +50,6 @@ class _TodoPageState extends State<TodoPage> {
   @override
   void dispose() {
     _pageController.dispose();
-    _taskBloc.close();
     super.dispose();
   }
 
@@ -160,19 +154,16 @@ class _TodoPageState extends State<TodoPage> {
             ),
           ),
         ),
-        body: BlocProvider.value(
-          value: _taskBloc,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: Column(
-              children: [
-                InputTask(_controller, theme: widget.theme),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: TaskListWidget(theme: widget.theme),
-                ),
-              ],
-            ),
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            children: [
+              InputTask(_controller, theme: widget.theme),
+              const SizedBox(height: 12),
+              Flexible(
+                child: TaskListWidget(theme: widget.theme),
+              ),
+            ],
           ),
         ),
       ),
