@@ -25,7 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    selectedLanguage = 'English'; // Default language
+    selectedLanguage = 'English';
   }
 
   void _openThemeSelection() {
@@ -46,7 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       backgroundColor: widget.theme.secondaryBackgroundColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         side: BorderSide(color: widget.theme.borderColor),
       ),
       builder: (context) => Container(
@@ -54,7 +54,6 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               height: 4,
               width: 40,
@@ -73,46 +72,10 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(height: 16),
-            ...[
-              'English',
-              'español',
-              'français',
-              'Deutsch',
-            ].map((language) {
-              return Container(
-                margin: EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: selectedLanguage == language
-                        ? widget.theme.buttonColor
-                        : widget.theme.borderColor,
-                    width: selectedLanguage == language ? 2 : 1,
-                  ),
-                ),
-                child: ListTile(
-                  title: Text(
-                    language,
-                    style: TextStyle(
-                      color: widget.theme.textColor,
-                      fontWeight: selectedLanguage == language
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                  trailing: selectedLanguage == language
-                      ? Icon(Icons.check_circle,
-                          color: widget.theme.successColor)
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      selectedLanguage = language;
-                    });
-                    Navigator.pop(context);
-                  },
-                ),
-              );
-            }).toList(),
+            _languageTile("English", true),
+            _languageTile("Español", false),
+            _languageTile("Français", false),
+            _languageTile("Deutsch", false),
             const SizedBox(height: 16),
           ],
         ),
@@ -120,12 +83,62 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _languageTile(String language, bool enabled) {
+    final isSelected = selectedLanguage == language;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color:
+              isSelected ? widget.theme.buttonColor : widget.theme.borderColor,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: ListTile(
+        enabled: enabled,
+        title: Text(
+          language,
+          style: TextStyle(
+            color: enabled
+                ? widget.theme.textColor
+                : widget.theme.secondaryTextColor,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        subtitle: enabled
+            ? null
+            : Text(
+                "Coming soon",
+                style: TextStyle(
+                  color: widget.theme.secondaryTextColor,
+                  fontSize: 12,
+                ),
+              ),
+        trailing: isSelected
+            ? Icon(Icons.check_circle, color: widget.theme.successColor)
+            : null,
+        onTap: enabled
+            ? () {
+                setState(() {
+                  selectedLanguage = language;
+                });
+                Navigator.pop(context);
+              }
+            : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: widget.theme.backgroundColor,
       appBar: AppBar(
         backgroundColor: widget.theme.backgroundColor,
         elevation: 0,
+        centerTitle: true,
         title: Text(
           'Settings',
           style: TextStyle(
@@ -134,20 +147,17 @@ class _SettingsPageState extends State<SettingsPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: widget.theme.textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      backgroundColor: widget.theme.backgroundColor,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Appearance Section
               Padding(
                 padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
                 child: Text(
@@ -160,8 +170,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               ),
-
-              // Theme Settings Card
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
@@ -224,8 +232,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Preferences Section
               Padding(
                 padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
                 child: Text(
@@ -238,8 +244,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               ),
-
-              // Language Settings Card
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
@@ -302,8 +306,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Analytics Section
               Padding(
                 padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
                 child: Text(
@@ -316,8 +318,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               ),
-
-              // Analysis Screen
               AnalysisScreen(theme: widget.theme),
               const SizedBox(height: 20),
             ],

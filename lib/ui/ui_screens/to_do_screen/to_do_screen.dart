@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:do_it_now/ui/ui_screens/to_do_screen/widget/completed_task.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,6 +14,7 @@ class TodoPage extends StatefulWidget {
   final ClockTheme theme;
   final int currentThemeIndex;
   final Function(int) onThemeChanged;
+
   const TodoPage({
     super.key,
     required this.onFlip,
@@ -45,8 +47,6 @@ class _TodoPageState extends State<TodoPage> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
-  // now handled via bloc
-
   @override
   void dispose() {
     _pageController.dispose();
@@ -66,10 +66,19 @@ class _TodoPageState extends State<TodoPage> {
     );
   }
 
+  void _openCompletedTasks() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CompletedTasksPage(theme: widget.theme),
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(TodoPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // if the provided theme or theme index changed, update local currentTheme
+
     if (oldWidget.theme != widget.theme ||
         oldWidget.currentThemeIndex != widget.currentThemeIndex) {
       currentTheme = ClockTheme.themes[widget.currentThemeIndex];
@@ -104,7 +113,6 @@ class _TodoPageState extends State<TodoPage> {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,20 +141,42 @@ class _TodoPageState extends State<TodoPage> {
                         ),
                       ],
                     ),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _openSettings,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          child: Icon(
-                            Icons.settings_rounded,
-                            color: widget.theme.buttonColor,
-                            size: 22,
+                    Row(
+                      children: [
+                        // completed tasks button
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _openCompletedTasks,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              child: Icon(
+                                Icons.check_circle_outline,
+                                color: widget.theme.buttonColor,
+                                size: 22,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+
+                        // settings button
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _openSettings,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              child: Icon(
+                                Icons.settings_rounded,
+                                color: widget.theme.buttonColor,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -146,12 +146,17 @@ class _FilterSelector extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(30),
-                  color: selected ? theme.hourHandColor : Colors.transparent,
-                  border: Border.all(color: theme.borderColor),
+                  color: selected ? theme.buttonColor : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? theme.buttonColor : theme.borderColor,
+                  ),
                 ),
                 child: Text(
                   f,
-                  style: TextStyle(color: theme.textColor),
+                  style: TextStyle(
+                    color: selected ? Colors.white : theme.textColor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             );

@@ -27,100 +27,95 @@ class ChangeFilter extends StatsEvent {
   List<Object?> get props => [filter];
 }
 
-/// STATE
-class StatsState extends Equatable {
-  final TaskStatistics? stats;
-  final int streak;
-  final String filter;
-  final bool loading;
-
-  const StatsState({
-    required this.filter,
-    this.stats,
-    this.streak = 0,
-    this.loading = false,
-  });
-
-  StatsState copyWith({
-    TaskStatistics? stats,
-    int? streak,
-    String? filter,
-    bool? loading,
-  }) {
-    return StatsState(
-      stats: stats ?? this.stats,
-      streak: streak ?? this.streak,
-      filter: filter ?? this.filter,
-      loading: loading ?? this.loading,
-    );
-  }
+/// STATES
+abstract class StatsState extends Equatable {
+  const StatsState();
 
   @override
-  List<Object?> get props => [stats, streak, filter, loading];
+  List<Object?> get props => [];
+}
+
+class StatsInitial extends StatsState {
+  final String filter;
+  const StatsInitial({this.filter = "Week"});
+
+  @override
+  List<Object?> get props => [filter];
+}
+
+class StatsLoadSuccess extends StatsState {
+  final TaskStatistics stats;
+  final int streak;
+  final String filter;
+
+  const StatsLoadSuccess(this.stats, this.streak, this.filter);
+
+  @override
+  List<Object?> get props => [stats, streak, filter];
 }
 
 /// BLOC
 class StatsBloc extends Bloc<StatsEvent, StatsState> {
-  /// cache for instant switching
+  /// Cache for all statistics
   final Map<String, TaskStatistics> _cache = {};
 
-  StatsBloc() : super(const StatsState(filter: "Week", loading: true)) {
+  int _streak = 0;
+
+  StatsBloc() : super(const StatsInitial()) {
     on<LoadStats>(_onLoadStats);
     on<ChangeFilter>(_onChangeFilter);
   }
 
+  /// Load all statistics once
   Future<void> _onLoadStats(
     LoadStats event,
     Emitter<StatsState> emit,
   ) async {
-    /// if cached → instant update
-    if (_cache.containsKey(event.filter)) {
-      emit(state.copyWith(
-        filter: event.filter,
-        stats: _cache[event.filter],
-        loading: false,
-      ));
-      return;
-    }
-
-    /// keep old stats while loading
-    emit(state.copyWith(
-      filter: event.filter,
-      loading: true,
-    ));
-
     try {
-      TaskStatistics stats;
-
-      if (event.filter == "Week") {
-        stats = await DatabaseInitializer.getWeeklyStatistics();
-      } else if (event.filter == "Month") {
-        stats = await DatabaseInitializer.getMonthlyStatistics();
-      } else {
-        stats = await DatabaseInitializer.getStatistics();
+      /// If cache already exists → just return it
+      if (_cache.isNotEmpty) {
+        emit(StatsLoadSuccess(
+          _cache[event.filter]!,
+          _streak,
+          event.filter,
+        ));
+        return;
       }
 
-      final streak = await DatabaseInitializer.getStreak();
+      /// Load everything in parallel
+      final results = await Future.wait([
+        DatabaseInitializer.getWeeklyStatistics(),
+        DatabaseInitializer.getMonthlyStatistics(),
+        DatabaseInitializer.getStatistics(),
+      ]);
 
-      /// save cache
-      _cache[event.filter] = stats;
+      _cache["Week"] = results[0];
+      _cache["Month"] = results[1];
+      _cache["All"] = results[2];
 
-      emit(state.copyWith(
-        stats: stats,
-        streak: streak,
-        loading: false,
+      _streak = await DatabaseInitializer.getStreak();
+
+      emit(StatsLoadSuccess(
+        _cache[event.filter]!,
+        _streak,
+        event.filter,
       ));
     } catch (e) {
-      emit(state.copyWith(loading: false));
+      emit(state);
     }
   }
 
+  /// Switch filters instantly using cache
   Future<void> _onChangeFilter(
     ChangeFilter event,
     Emitter<StatsState> emit,
   ) async {
-    if (state.filter == event.filter) return;
+    if (!_cache.containsKey(event.filter)) return;
 
-    add(LoadStats(event.filter));
+    emit(StatsLoadSuccess(
+      _cache[event.filter]!,
+      _streak,
+      event.filter,
+    ));
   }
 }
