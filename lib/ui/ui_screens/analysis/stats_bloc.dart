@@ -3,76 +3,95 @@ import 'package:equatable/equatable.dart';
 import 'package:do_it_now/data/models/task_statistics.dart';
 import 'package:do_it_now/data/database/database_initializer.dart';
 
-// EVENTS
+/// EVENTS
 abstract class StatsEvent extends Equatable {
   const StatsEvent();
+
   @override
   List<Object?> get props => [];
 }
 
 class LoadStats extends StatsEvent {
-  final String filter; // "Week" "Month" "All"
+  final String filter;
   const LoadStats(this.filter);
+
   @override
   List<Object?> get props => [filter];
 }
 
 class ChangeFilter extends StatsEvent {
-  final String filter; // "Week" "Month" "All"
+  final String filter;
   const ChangeFilter(this.filter);
+
   @override
   List<Object?> get props => [filter];
 }
 
-// STATES
-abstract class StatsState extends Equatable {
-  const StatsState();
-  @override
-  List<Object?> get props => [];
-}
-
-class StatsInitial extends StatsState {
-  final String filter;
-  const StatsInitial({this.filter = "Week"});
-  @override
-  List<Object?> get props => [filter];
-}
-
-class StatsLoadInProgress extends StatsState {
-  final String filter;
-  const StatsLoadInProgress(this.filter);
-  @override
-  List<Object?> get props => [filter];
-}
-
-class StatsLoadSuccess extends StatsState {
-  final TaskStatistics stats;
+/// STATE
+class StatsState extends Equatable {
+  final TaskStatistics? stats;
   final int streak;
   final String filter;
-  const StatsLoadSuccess(this.stats, this.streak, this.filter);
+  final bool loading;
+
+  const StatsState({
+    required this.filter,
+    this.stats,
+    this.streak = 0,
+    this.loading = false,
+  });
+
+  StatsState copyWith({
+    TaskStatistics? stats,
+    int? streak,
+    String? filter,
+    bool? loading,
+  }) {
+    return StatsState(
+      stats: stats ?? this.stats,
+      streak: streak ?? this.streak,
+      filter: filter ?? this.filter,
+      loading: loading ?? this.loading,
+    );
+  }
+
   @override
-  List<Object?> get props => [stats, streak, filter];
+  List<Object?> get props => [stats, streak, filter, loading];
 }
 
-class StatsOperationFailure extends StatsState {
-  final String error;
-  final String filter;
-  const StatsOperationFailure(this.error, this.filter);
-  @override
-  List<Object?> get props => [error, filter];
-}
-
-// BLOC
+/// BLOC
 class StatsBloc extends Bloc<StatsEvent, StatsState> {
-  StatsBloc() : super(const StatsInitial()) {
+  /// cache for instant switching
+  final Map<String, TaskStatistics> _cache = {};
+
+  StatsBloc() : super(const StatsState(filter: "Week", loading: true)) {
     on<LoadStats>(_onLoadStats);
     on<ChangeFilter>(_onChangeFilter);
   }
 
-  Future<void> _onLoadStats(LoadStats event, Emitter<StatsState> emit) async {
-    emit(StatsLoadInProgress(event.filter));
+  Future<void> _onLoadStats(
+    LoadStats event,
+    Emitter<StatsState> emit,
+  ) async {
+    /// if cached → instant update
+    if (_cache.containsKey(event.filter)) {
+      emit(state.copyWith(
+        filter: event.filter,
+        stats: _cache[event.filter],
+        loading: false,
+      ));
+      return;
+    }
+
+    /// keep old stats while loading
+    emit(state.copyWith(
+      filter: event.filter,
+      loading: true,
+    ));
+
     try {
       TaskStatistics stats;
+
       if (event.filter == "Week") {
         stats = await DatabaseInitializer.getWeeklyStatistics();
       } else if (event.filter == "Month") {
@@ -80,21 +99,28 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
       } else {
         stats = await DatabaseInitializer.getStatistics();
       }
+
       final streak = await DatabaseInitializer.getStreak();
-      emit(StatsLoadSuccess(stats, streak, event.filter));
+
+      /// save cache
+      _cache[event.filter] = stats;
+
+      emit(state.copyWith(
+        stats: stats,
+        streak: streak,
+        loading: false,
+      ));
     } catch (e) {
-      emit(StatsOperationFailure(e.toString(), event.filter));
+      emit(state.copyWith(loading: false));
     }
   }
 
   Future<void> _onChangeFilter(
-      ChangeFilter event, Emitter<StatsState> emit) async {
-    // If we're already in the same filter, don't reload
-    if (state is StatsLoadSuccess &&
-        (state as StatsLoadSuccess).filter == event.filter) {
-      return;
-    }
-    // Load stats for the new filter
+    ChangeFilter event,
+    Emitter<StatsState> emit,
+  ) async {
+    if (state.filter == event.filter) return;
+
     add(LoadStats(event.filter));
   }
 }
