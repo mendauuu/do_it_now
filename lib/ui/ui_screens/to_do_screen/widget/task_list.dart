@@ -72,7 +72,13 @@ class TaskListWidget extends StatelessWidget {
         }
 
         if (state is TaskLoadSuccess) {
-          final tasks = state.tasks;
+          // remove completed tasks and show newest first
+          final tasks = state.tasks
+              .where((task) => !task.isDone)
+              .toList()
+              .reversed
+              .toList();
+
           if (tasks.isEmpty) {
             return Center(
               child: Column(
@@ -118,6 +124,7 @@ class TaskListWidget extends StatelessWidget {
             itemCount: tasks.length,
             itemBuilder: (context, index) {
               final task = tasks[index];
+
               return TaskCard(
                 key: ValueKey('${task.title}_${task.date}'),
                 task: task,
