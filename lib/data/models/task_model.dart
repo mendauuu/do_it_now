@@ -1,40 +1,17 @@
-import 'package:hive/hive.dart';
-
-// part 'task_model.g.dart';
-
-@HiveType(typeId: 1)
 class Task {
-  @HiveField(0)
   final int? id;
-
-  @HiveField(1)
   final String title;
-
-  @HiveField(2)
   final String description;
-
-  @HiveField(3)
-  final int priority; // 1: Low, 2: Medium, 3: High
-
-  @HiveField(4)
+  final int priority;
   final bool isDone;
-
-  @HiveField(5)
   final DateTime createdDate;
-
-  @HiveField(6)
   final DateTime? completedDate;
-
-  @HiveField(7)
+  final DateTime? dueDate;
   final String category;
-
-  @HiveField(8)
   final int createdTimestamp;
-
-  @HiveField(9)
   final int? completedTimestamp;
 
-  Task({
+  const Task({
     this.id,
     required this.title,
     required this.description,
@@ -42,46 +19,48 @@ class Task {
     required this.isDone,
     required this.createdDate,
     this.completedDate,
+    this.dueDate,
     this.category = 'General',
     required this.createdTimestamp,
     this.completedTimestamp,
   });
 
-  // Convert Task to Map for database insertion
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      if (id != null) 'id': id,
       'title': title,
       'description': description,
       'priority': priority,
       'is_done': isDone ? 1 : 0,
       'created_date': createdDate.toIso8601String(),
       'completed_date': completedDate?.toIso8601String(),
+      'due_date': dueDate?.toIso8601String(),
       'category': category,
       'created_timestamp': createdTimestamp,
       'completed_timestamp': completedTimestamp,
     };
   }
 
-  // Create Task from Map (from database)
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
-      id: map['id'],
-      title: map['title'],
-      description: map['description'] ?? '',
-      priority: map['priority'] ?? 1,
-      isDone: map['is_done'] == 1,
-      createdDate: DateTime.parse(map['created_date']),
+      id: map['id'] as int?,
+      title: map['title'] as String,
+      description: map['description'] as String? ?? '',
+      priority: map['priority'] as int? ?? 1,
+      isDone: (map['is_done'] as int? ?? 0) == 1,
+      createdDate: DateTime.parse(map['created_date'] as String),
       completedDate: map['completed_date'] != null
-          ? DateTime.parse(map['completed_date'])
+          ? DateTime.parse(map['completed_date'] as String)
           : null,
-      category: map['category'] ?? 'General',
-      createdTimestamp: map['created_timestamp'],
-      completedTimestamp: map['completed_timestamp'],
+      dueDate: map['due_date'] != null
+          ? DateTime.parse(map['due_date'] as String)
+          : null,
+      category: map['category'] as String? ?? 'General',
+      createdTimestamp: map['created_timestamp'] as int,
+      completedTimestamp: map['completed_timestamp'] as int?,
     );
   }
 
-  // Create a copy of Task with modified fields
   Task copyWith({
     int? id,
     String? title,
@@ -90,6 +69,7 @@ class Task {
     bool? isDone,
     DateTime? createdDate,
     DateTime? completedDate,
+    DateTime? dueDate,
     String? category,
     int? createdTimestamp,
     int? completedTimestamp,
@@ -102,6 +82,7 @@ class Task {
       isDone: isDone ?? this.isDone,
       createdDate: createdDate ?? this.createdDate,
       completedDate: completedDate ?? this.completedDate,
+      dueDate: dueDate ?? this.dueDate,
       category: category ?? this.category,
       createdTimestamp: createdTimestamp ?? this.createdTimestamp,
       completedTimestamp: completedTimestamp ?? this.completedTimestamp,
@@ -109,7 +90,6 @@ class Task {
   }
 
   @override
-  String toString() {
-    return 'Task(id: $id, title: $title, priority: $priority, isDone: $isDone)';
-  }
+  String toString() =>
+      'Task(id: $id, title: $title, priority: $priority, isDone: $isDone)';
 }

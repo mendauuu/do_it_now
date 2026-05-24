@@ -3,85 +3,97 @@ import 'package:equatable/equatable.dart';
 import 'package:do_it_now/data/models/task_statistics.dart';
 import 'package:do_it_now/data/database/database_initializer.dart';
 
-// EVENTS
+// ── Events ─────────────────────────────────────────────────────────────────────
+
 abstract class StatsEvent extends Equatable {
   const StatsEvent();
   @override
   List<Object?> get props => [];
 }
 
+/// Load (or reload) stats. Pass [forceRefresh] to bust the cache.
 class LoadStats extends StatsEvent {
-  final String filter; // "Week" "Month" "All"
-  const LoadStats(this.filter);
+  final String filter;
+  final bool forceRefresh;
+  const LoadStats(this.filter, {this.forceRefresh = false});
   @override
-  List<Object?> get props => [filter];
+  List<Object?> get props => [filter, forceRefresh];
 }
 
 class ChangeFilter extends StatsEvent {
-  final String filter; // "Week" "Month" "All"
+  final String filter;
   const ChangeFilter(this.filter);
   @override
   List<Object?> get props => [filter];
 }
 
-// STATES
+// ── States ─────────────────────────────────────────────────────────────────────
+
 abstract class StatsState extends Equatable {
-  const StatsState();
+  final String filter;
+  const StatsState(this.filter);
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [filter];
 }
 
 class StatsInitial extends StatsState {
-  final String filter;
-  const StatsInitial({this.filter = "Week"});
-  @override
-  List<Object?> get props => [filter];
+  const StatsInitial({String filter = 'Week'}) : super(filter);
 }
 
 class StatsLoadInProgress extends StatsState {
-  final String filter;
-  const StatsLoadInProgress(this.filter);
-  @override
-  List<Object?> get props => [filter];
+  const StatsLoadInProgress(super.filter);
 }
 
 class StatsLoadSuccess extends StatsState {
   final TaskStatistics stats;
   final int streak;
-  final String filter;
-  const StatsLoadSuccess(this.stats, this.streak, this.filter);
+  const StatsLoadSuccess(this.stats, this.streak, String filter)
+      : super(filter);
   @override
   List<Object?> get props => [stats, streak, filter];
 }
 
 class StatsOperationFailure extends StatsState {
   final String error;
-  final String filter;
-  const StatsOperationFailure(this.error, this.filter);
+  const StatsOperationFailure(this.error, String filter) : super(filter);
   @override
   List<Object?> get props => [error, filter];
 }
 
-// BLOC
+// ── Bloc ───────────────────────────────────────────────────────────────────────
+
 class StatsBloc extends Bloc<StatsEvent, StatsState> {
+  final Map<String, TaskStatistics> _cache = {};
+  int _streak = 0;
+
   StatsBloc() : super(const StatsInitial()) {
-    on<LoadStats>(_onLoadStats);
+    on<LoadStats>(_onLoad);
     on<ChangeFilter>(_onChangeFilter);
   }
 
-  Future<void> _onLoadStats(LoadStats event, Emitter<StatsState> emit) async {
+  Future<void> _onLoad(LoadStats event, Emitter<StatsState> emit) async {
+    // Serve from cache if available and not a forced refresh
+    if (!event.forceRefresh && _cache.containsKey(event.filter)) {
+      emit(StatsLoadSuccess(_cache[event.filter]!, _streak, event.filter));
+      return;
+    }
+
     emit(StatsLoadInProgress(event.filter));
+
     try {
-      TaskStatistics stats;
-      if (event.filter == "Week") {
-        stats = await DatabaseInitializer.getWeeklyStatistics();
-      } else if (event.filter == "Month") {
-        stats = await DatabaseInitializer.getMonthlyStatistics();
-      } else {
-        stats = await DatabaseInitializer.getStatistics();
-      }
-      final streak = await DatabaseInitializer.getStreak();
-      emit(StatsLoadSuccess(stats, streak, event.filter));
+      // Load all three filters in parallel — cheap since it's all from one DB
+      final results = await Future.wait([
+        DatabaseInitializer.getWeeklyStatistics(),
+        DatabaseInitializer.getMonthlyStatistics(),
+        DatabaseInitializer.getStatistics(),
+      ]);
+
+      _cache['Week'] = results[0];
+      _cache['Month'] = results[1];
+      _cache['All'] = results[2];
+      _streak = await DatabaseInitializer.getStreak();
+
+      emit(StatsLoadSuccess(_cache[event.filter]!, _streak, event.filter));
     } catch (e) {
       emit(StatsOperationFailure(e.toString(), event.filter));
     }
@@ -89,12 +101,22 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
 
   Future<void> _onChangeFilter(
       ChangeFilter event, Emitter<StatsState> emit) async {
-    // If we're already in the same filter, don't reload
     if (state is StatsLoadSuccess &&
         (state as StatsLoadSuccess).filter == event.filter) {
-      return;
+      return; // already showing this filter
     }
-    // Load stats for the new filter
-    add(LoadStats(event.filter));
+
+    if (_cache.containsKey(event.filter)) {
+      // Instant switch from cache
+      emit(StatsLoadSuccess(_cache[event.filter]!, _streak, event.filter));
+    } else {
+      // Cache not ready yet — trigger a load
+      add(LoadStats(event.filter));
+    }
+  }
+
+  /// Call this after task mutations so stats stay up to date.
+  void invalidateCache() {
+    _cache.clear();
   }
 }

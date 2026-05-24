@@ -1,10 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// Re-generated after adding sqlId (field 5), dueDate (field 6), category (field 7)
 
 part of 'task_model.dart';
-
-// **************************************************************************
-// TypeAdapterGenerator
-// **************************************************************************
 
 class TaskModelAdapter extends TypeAdapter<TaskModel> {
   @override
@@ -22,13 +19,17 @@ class TaskModelAdapter extends TypeAdapter<TaskModel> {
       date: fields[2] as DateTime,
       priority: fields[3] as int,
       isDone: fields[4] as bool,
+      // New fields — safe to read as nullable; old records will be missing them
+      sqlId: fields[5] as int?,
+      dueDate: fields[6] as DateTime?,
+      category: fields[7] as String? ?? 'General',
     );
   }
 
   @override
   void write(BinaryWriter writer, TaskModel obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -38,7 +39,13 @@ class TaskModelAdapter extends TypeAdapter<TaskModel> {
       ..writeByte(3)
       ..write(obj.priority)
       ..writeByte(4)
-      ..write(obj.isDone);
+      ..write(obj.isDone)
+      ..writeByte(5)
+      ..write(obj.sqlId)
+      ..writeByte(6)
+      ..write(obj.dueDate)
+      ..writeByte(7)
+      ..write(obj.category);
   }
 
   @override

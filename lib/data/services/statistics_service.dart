@@ -3,221 +3,158 @@ import 'package:do_it_now/data/models/task_model.dart';
 import 'package:do_it_now/data/models/task_statistics.dart';
 import 'package:do_it_now/data/repositories/task_repository.dart';
 
+/// Single canonical StatisticsService.
+/// All stat calculations are done in-memory from fetched tasks —
+/// no raw SQL queries — so they stay correct and testable.
 class StatisticsService {
-  final TaskRepository _taskRepository;
+  final TaskRepository _repo;
 
   StatisticsService({required TaskRepository taskRepository})
-      : _taskRepository = taskRepository;
+      : _repo = taskRepository;
 
-  /// Get all-time statistics
+  // ── Public API ──────────────────────────────────────────────────────────────
+
   Future<TaskStatistics> getStatistics() async {
-    try {
-      final allTasks = await _taskRepository.getAllTasks();
-      return _calculateStatistics(allTasks);
-    } catch (e) {
-      throw Exception('Failed to fetch statistics: $e');
-    }
+    final tasks = await _repo.getAllTasks();
+    return _calculate(tasks);
   }
 
-  /// Get statistics for the current week
   Future<TaskStatistics> getWeeklyStatistics() async {
-    try {
-      final now = DateTime.now();
-      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-      final endOfWeek = startOfWeek.add(const Duration(days: 7));
-
-      final weeklyTasks =
-          await _taskRepository.getTasksByDateRange(startOfWeek, endOfWeek);
-
-      return _calculateStatistics(weeklyTasks);
-    } catch (e) {
-      throw Exception('Failed to fetch weekly statistics: $e');
-    }
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(days: 6));
+    final tasks = await _repo.getTasksByDateRange(start, now);
+    return _calculate(tasks);
   }
 
-  /// Get statistics for the current month
   Future<TaskStatistics> getMonthlyStatistics() async {
-    try {
-      final now = DateTime.now();
-      final startOfMonth = DateTime(now.year, now.month, 1);
-      final endOfMonth = DateTime(now.year, now.month + 1, 1)
-          .subtract(const Duration(days: 1));
-
-      final monthlyTasks =
-          await _taskRepository.getTasksByDateRange(startOfMonth, endOfMonth);
-
-      return _calculateStatistics(monthlyTasks);
-    } catch (e) {
-      throw Exception('Failed to fetch monthly statistics: $e');
-    }
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, 1);
+    final tasks = await _repo.getTasksByDateRange(start, now);
+    return _calculate(tasks);
   }
 
-  /// Calculate statistics from a list of tasks
-  TaskStatistics _calculateStatistics(List<Task> tasks) {
-    if (tasks.isEmpty) {
-      return TaskStatistics.empty();
-    }
+  /// Consecutive days (going back from today) where at least one task was completed.
+  Future<int> getStreak() async {
+    final tasks = await _repo.getAllTasks();
+    final completed = tasks.where((t) => t.isDone && t.completedDate != null);
 
-    final completedTasks = tasks.where((t) => t.isDone).toList();
-    final pendingTasks = tasks.where((t) => !t.isDone).toList();
+    int streak = 0;
+    var day = DateTime.now();
 
-    final completionRate =
-        tasks.isEmpty ? 0.0 : (completedTasks.length / tasks.length) * 100;
-
-    // Priority distribution
-    final highPriority = tasks.where((t) => t.priority == 3).length;
-    final mediumPriority = tasks.where((t) => t.priority == 2).length;
-    final lowPriority = tasks.where((t) => t.priority == 1).length;
-
-    // Average completion time (only for completed tasks)
-    double averageCompletionTime = 0.0;
-    if (completedTasks.isNotEmpty) {
-      final totalTime = completedTasks.fold<int>(0, (sum, task) {
-        if (task.completedDate != null) {
-          return sum + task.completedDate!.difference(task.createdDate).inHours;
-        }
-        return sum;
+    for (int i = 0; i < 365; i++) {
+      final target = DateTime(day.year, day.month, day.day);
+      final hasCompletion = completed.any((t) {
+        final d = t.completedDate!;
+        return d.year == target.year &&
+            d.month == target.month &&
+            d.day == target.day;
       });
-      averageCompletionTime = totalTime / completedTasks.length;
+
+      if (hasCompletion) {
+        streak++;
+        day = day.subtract(const Duration(days: 1));
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  Future<Map<String, double>> getProductivityTrend() async {
+    final tasks = await _repo.getAllTasks();
+    final trend = <String, double>{};
+
+    for (int week = 3; week >= 0; week--) {
+      final start = DateTime.now().subtract(Duration(days: (week + 1) * 7));
+      final end = DateTime.now().subtract(Duration(days: week * 7));
+
+      final weekTasks = tasks.where(
+          (t) => t.createdDate.isAfter(start) && t.createdDate.isBefore(end));
+      final total = weekTasks.length;
+      final done = weekTasks.where((t) => t.isDone).length;
+      trend['Week ${4 - week}'] = total == 0 ? 0 : (done / total) * 100;
+    }
+    return trend;
+  }
+
+  // ── Private helpers ─────────────────────────────────────────────────────────
+
+  TaskStatistics _calculate(List<Task> tasks) {
+    if (tasks.isEmpty) return TaskStatistics.empty();
+
+    final completed = tasks.where((t) => t.isDone).toList();
+    final pending = tasks.where((t) => !t.isDone).toList();
+    final completionRate =
+        tasks.isEmpty ? 0.0 : (completed.length / tasks.length) * 100;
+
+    final high = tasks.where((t) => t.priority == 3).length;
+    final med = tasks.where((t) => t.priority == 2).length;
+    final low = tasks.where((t) => t.priority == 1).length;
+
+    // Average hours to complete
+    double avgTime = 0;
+    final withTime = completed.where((t) => t.completedDate != null).toList();
+    if (withTime.isNotEmpty) {
+      final total = withTime.fold<int>(0,
+          (sum, t) => sum + t.completedDate!.difference(t.createdDate).inHours);
+      avgTime = total / withTime.length;
     }
 
-    // Tasks completed this week and month
     final now = DateTime.now();
     final weekAgo = now.subtract(const Duration(days: 7));
     final monthAgo = now.subtract(const Duration(days: 30));
 
-    final tasksThisWeek = completedTasks
-        .where((t) =>
-            t.completedDate != null &&
-            t.completedDate!.isAfter(weekAgo) &&
-            t.isDone)
+    final thisWeek = completed
+        .where(
+            (t) => t.completedDate != null && t.completedDate!.isAfter(weekAgo))
         .length;
-
-    final tasksThisMonth = completedTasks
+    final thisMonth = completed
         .where((t) =>
-            t.completedDate != null &&
-            t.completedDate!.isAfter(monthAgo) &&
-            t.isDone)
+            t.completedDate != null && t.completedDate!.isAfter(monthAgo))
         .length;
-
-    // Category breakdown
-    final categoryBreakdown = _getCategoryBreakdown(tasks);
-
-    // Daily completion data
-    final dailyCompletionData = _getDailyCompletionData(completedTasks);
 
     return TaskStatistics(
       totalTasks: tasks.length,
-      completedTasks: completedTasks.length,
-      pendingTasks: pendingTasks.length,
+      completedTasks: completed.length,
+      pendingTasks: pending.length,
       completionRate: completionRate,
-      highPriorityTasks: highPriority,
-      mediumPriorityTasks: mediumPriority,
-      lowPriorityTasks: lowPriority,
-      averageCompletionTime: averageCompletionTime,
-      tasksCompletedThisWeek: tasksThisWeek,
-      tasksCompletedThisMonth: tasksThisMonth,
-      tasksByCategory: categoryBreakdown,
-      tasksCompletedByDay: dailyCompletionData,
+      highPriorityTasks: high,
+      mediumPriorityTasks: med,
+      lowPriorityTasks: low,
+      averageCompletionTime: avgTime,
+      tasksCompletedThisWeek: thisWeek,
+      tasksCompletedThisMonth: thisMonth,
+      tasksByCategory: _categoryBreakdown(tasks),
+      // Keys are "MMM dd" strings — last 7 days oldest→newest
+      tasksCompletedByDay: _dailyCompletions(completed),
     );
   }
 
-  /// Get daily completion data for the last 7 days
-  Map<String, int> _getDailyCompletionData(List<Task> completedTasks) {
-    final dailyData = <String, int>{};
+  /// Returns a LinkedHashMap with keys like "May 17", oldest first.
+  Map<String, int> _dailyCompletions(List<Task> completed) {
+    final result = <String, int>{};
     final now = DateTime.now();
 
     for (int i = 6; i >= 0; i--) {
-      final date = now.subtract(Duration(days: i));
-      final dateKey = DateFormat('MMM dd').format(date);
-
-      final dayCompletions = completedTasks.where((t) {
-        return t.completedDate != null &&
-            t.completedDate!.year == date.year &&
-            t.completedDate!.month == date.month &&
-            t.completedDate!.day == date.day;
+      final day = now.subtract(Duration(days: i));
+      final key = DateFormat('MMM dd').format(day);
+      result[key] = completed.where((t) {
+        final d = t.completedDate;
+        return d != null &&
+            d.year == day.year &&
+            d.month == day.month &&
+            d.day == day.day;
       }).length;
-
-      dailyData[dateKey] = dayCompletions;
     }
-
-    return dailyData;
+    return result;
   }
 
-  /// Get category breakdown
-  Map<String, int> _getCategoryBreakdown(List<Task> tasks) {
-    final breakdown = <String, int>{};
-
-    for (final task in tasks) {
-      if (task.category.isNotEmpty) {
-        breakdown[task.category] = (breakdown[task.category] ?? 0) + 1;
-      }
+  Map<String, int> _categoryBreakdown(List<Task> tasks) {
+    final map = <String, int>{};
+    for (final t in tasks) {
+      map[t.category] = (map[t.category] ?? 0) + 1;
     }
-
-    return breakdown;
-  }
-
-  /// Get current streak (consecutive days with completed tasks)
-  Future<int> getStreak() async {
-    try {
-      final allTasks = await _taskRepository.getAllTasks();
-      final completedTasks = allTasks.where((t) => t.isDone).toList();
-
-      if (completedTasks.isEmpty) {
-        return 0;
-      }
-
-      int streak = 0;
-      var currentDate = DateTime.now();
-
-      while (true) {
-        final hasCompletionToday = completedTasks.any((t) {
-          return t.completedDate != null &&
-              t.completedDate!.year == currentDate.year &&
-              t.completedDate!.month == currentDate.month &&
-              t.completedDate!.day == currentDate.day;
-        });
-
-        if (hasCompletionToday) {
-          streak++;
-          currentDate = currentDate.subtract(const Duration(days: 1));
-        } else {
-          break;
-        }
-      }
-
-      return streak;
-    } catch (e) {
-      throw Exception('Failed to calculate streak: $e');
-    }
-  }
-
-  /// Get productivity trend (comparison between weeks)
-  Future<Map<String, double>> getProductivityTrend() async {
-    try {
-      final allTasks = await _taskRepository.getAllTasks();
-      final trend = <String, double>{};
-
-      // Get stats for last 4 weeks
-      for (int week = 3; week >= 0; week--) {
-        final start = DateTime.now().subtract(Duration(days: (week * 7) + 7));
-        final end = DateTime.now().subtract(Duration(days: week * 7));
-
-        final weekTasks = allTasks.where((t) {
-          return t.createdDate.isAfter(start) && t.createdDate.isBefore(end);
-        }).toList();
-
-        final completed = weekTasks.where((t) => t.isDone).length;
-        final rate =
-            weekTasks.isEmpty ? 0.0 : (completed / weekTasks.length) * 100;
-
-        final weekLabel = 'Week ${week + 1}';
-        trend[weekLabel] = rate;
-      }
-
-      return trend;
-    } catch (e) {
-      throw Exception('Failed to get productivity trend: $e');
-    }
+    return map;
   }
 }

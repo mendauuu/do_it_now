@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:do_it_now/data/database/database_initializer.dart';
-import '../../../theme/clock_theme.dart';
-import '../../../hive/task_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:do_it_now/ui/theme/clock_theme.dart';
+import 'package:do_it_now/ui/hive/task_model.dart';
+import 'package:do_it_now/blocs/task_bloc.dart';
+import 'package:do_it_now/ui/ui_screens/to_do_screen/widget/task_form_sheet.dart';
 
 class TaskCard extends StatefulWidget {
   final TaskModel task;
-  final int index;
-  final Function(int) onDelete;
   final ClockTheme theme;
 
   const TaskCard({
     super.key,
     required this.task,
-    required this.index,
-    required this.onDelete,
     required this.theme,
   });
 
@@ -38,105 +37,116 @@ class _TaskCardState extends State<TaskCard>
   }
 
   @override
+  void didUpdateWidget(TaskCard old) {
+    super.didUpdateWidget(old);
+    if (old.task.sqlId != widget.task.sqlId ||
+        old.task.title != widget.task.title) {
+      _isExpanded = false;
+      _expandController.reset();
+    }
+    _isCompleted = widget.task.isDone;
+  }
+
+  @override
   void dispose() {
     _expandController.dispose();
     super.dispose();
   }
 
-  Future<void> _toggleCompletion() async {
-    try {
-      setState(() {
-        _isCompleted = !_isCompleted;
-      });
-      await DatabaseInitializer.toggleTaskCompletion(
-        widget.index,
-        _isCompleted,
-      );
-    } catch (e) {
-      setState(() {
-        _isCompleted = !_isCompleted;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: widget.theme.errorColor,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
+  void _toggle() {
+    assert(widget.task.sqlId != null, 'TaskCard: task has no sqlId');
+    final newValue = !_isCompleted;
+    setState(() => _isCompleted = newValue);
+    context.read<TaskBloc>().add(ToggleTask(widget.task.sqlId!, newValue));
   }
 
-  @override
-  void didUpdateWidget(TaskCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // If task content changed (deleted and replaced by different task), reset expanded state
-    if (oldWidget.task.title != widget.task.title ||
-        oldWidget.task.date != widget.task.date) {
-      _isExpanded = false;
-      _expandController.reset();
-    }
+  void _delete() {
+    assert(widget.task.sqlId != null, 'TaskCard: task has no sqlId');
+    context.read<TaskBloc>().add(DeleteTask(widget.task.sqlId!));
+  }
+
+  void _openEdit() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: widget.theme.secondaryBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => TaskFormSheet(
+        theme: widget.theme,
+        initialTask: widget.task,
+        onAddTask: (title, desc, priority, category, dueDate) {
+          final edited = widget.task.copyWith(
+            title: title,
+            description: desc,
+            priority: priority,
+            category: category,
+            dueDate: dueDate,
+          );
+          context.read<TaskBloc>().add(EditTask(edited));
+        },
+      ),
+    );
   }
 
   void _toggleExpanded() {
     setState(() {
       _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _expandController.forward();
-      } else {
-        _expandController.reverse();
-      }
+      _isExpanded ? _expandController.forward() : _expandController.reverse();
     });
   }
 
-  Color _getPriorityColor() {
-    switch (widget.task.priority) {
-      case 3:
-        return widget.theme.errorColor;
-      case 2:
-        return widget.theme.warningColor;
-      default:
-        return widget.theme.successColor;
-    }
+  Color _priorityColor() {
+    return switch (widget.task.priority) {
+      3 => widget.theme.errorColor,
+      2 => widget.theme.warningColor,
+      _ => widget.theme.successColor,
+    };
   }
 
-  String _getPriorityLabel() {
-    switch (widget.task.priority) {
-      case 3:
-        return 'High';
-      case 2:
-        return 'Med';
-      default:
-        return 'Low';
-    }
+  String _priorityLabel() {
+    return switch (widget.task.priority) {
+      3 => 'High',
+      2 => 'Med',
+      _ => 'Low',
+    };
+  }
+
+  bool get _isOverdue {
+    final due = widget.task.dueDate;
+    return due != null && !_isCompleted && due.isBefore(DateTime.now());
   }
 
   @override
   Widget build(BuildContext context) {
+    final priorityColor = _priorityColor();
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: _isCompleted
               ? widget.theme.successColor.withValues(alpha: 0.2)
-              : widget.theme.borderColor.withValues(alpha: 0.25),
+              : _isOverdue
+                  ? widget.theme.errorColor.withValues(alpha: 0.4)
+                  : widget.theme.borderColor.withValues(alpha: 0.25),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.theme.shadowColor?.withValues(alpha: 0.08) ??
-                Colors.black.withValues(alpha: 0.08),
+            color: (widget.theme.shadowColor ?? Colors.black)
+                .withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Column(
         children: [
-          // Card Header
+          // ── Header row ──────────────────────────────────────────────────────
           GestureDetector(
             onTap: _toggleExpanded,
             child: Padding(
@@ -145,7 +155,7 @@ class _TaskCardState extends State<TaskCard>
                 children: [
                   // Checkbox
                   GestureDetector(
-                    onTap: _toggleCompletion,
+                    onTap: _toggle,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.all(6),
@@ -171,7 +181,7 @@ class _TaskCardState extends State<TaskCard>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Title & Description
+                  // Title + description
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,41 +203,81 @@ class _TaskCardState extends State<TaskCard>
                             decorationColor: widget.theme.secondaryTextColor,
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          widget.task.description,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: widget.theme.secondaryTextColor
-                                .withValues(alpha: 0.6),
-                            fontWeight: FontWeight.w400,
+                        if (widget.task.description.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            widget.task.description,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: widget.theme.secondaryTextColor
+                                  .withValues(alpha: 0.6),
+                            ),
                           ),
-                        ),
+                        ],
+                        // Due date chip
+                        if (widget.task.dueDate != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.event_rounded,
+                                size: 11,
+                                color: _isOverdue
+                                    ? widget.theme.errorColor
+                                    : widget.theme.infoColor
+                                        .withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                DateFormat('MMM d')
+                                    .format(widget.task.dueDate!),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _isOverdue
+                                      ? widget.theme.errorColor
+                                      : widget.theme.infoColor
+                                          .withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (_isOverdue) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Overdue',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: widget.theme.errorColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 6),
-                  // Priority Badge
+                  // Priority badge
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getPriorityColor().withValues(alpha: 0.15),
+                      color: priorityColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      _getPriorityLabel(),
+                      _priorityLabel(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: _getPriorityColor(),
+                        color: priorityColor,
                       ),
                     ),
                   ),
                   const SizedBox(width: 6),
-                  // Expand Icon
                   RotationTransition(
                     turns:
                         Tween(begin: 0.0, end: 0.5).animate(_expandController),
@@ -241,7 +291,8 @@ class _TaskCardState extends State<TaskCard>
               ),
             ),
           ),
-          // Expanded Details
+
+          // ── Expanded details ────────────────────────────────────────────────
           if (_isExpanded) ...[
             Divider(
               color: widget.theme.borderColor.withValues(alpha: 0.15),
@@ -254,121 +305,61 @@ class _TaskCardState extends State<TaskCard>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Date Row
+                  // Created date + category
                   Row(
                     children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 16,
-                        color: widget.theme.infoColor.withValues(alpha: 0.7),
-                      ),
-                      const SizedBox(width: 8),
+                      Icon(Icons.calendar_today_rounded,
+                          size: 14,
+                          color: widget.theme.infoColor.withValues(alpha: 0.7)),
+                      const SizedBox(width: 6),
                       Text(
-                        widget.task.date.toString().substring(0, 10),
+                        DateFormat('MMM d, yyyy').format(widget.task.date),
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           color: widget.theme.secondaryTextColor,
-                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(Icons.label_outline_rounded,
+                          size: 14,
+                          color: widget.theme.infoColor.withValues(alpha: 0.7)),
+                      const SizedBox(width: 4),
+                      Text(
+                        widget.task.category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: widget.theme.secondaryTextColor,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Action Buttons
+                  // Action buttons
                   Row(
                     children: [
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _toggleCompletion,
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 9, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: (_isCompleted
-                                        ? widget.theme.warningColor
-                                        : widget.theme.successColor)
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _isCompleted
-                                        ? Icons.restore_rounded
-                                        : Icons.check_rounded,
-                                    size: 15,
-                                    color: _isCompleted
-                                        ? widget.theme.warningColor
-                                        : widget.theme.successColor,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      _isCompleted ? 'Undo' : 'Done',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: _isCompleted
-                                            ? widget.theme.warningColor
-                                            : widget.theme.successColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      _actionButton(
+                        icon: _isCompleted
+                            ? Icons.restore_rounded
+                            : Icons.check_rounded,
+                        label: _isCompleted ? 'Undo' : 'Done',
+                        color: _isCompleted
+                            ? widget.theme.warningColor
+                            : widget.theme.successColor,
+                        onTap: _toggle,
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => widget.onDelete(widget.index),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 9, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: widget.theme.errorColor
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.delete_outline_rounded,
-                                    size: 15,
-                                    color: widget.theme.errorColor,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      'Delete',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: widget.theme.errorColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      _actionButton(
+                        icon: Icons.edit_outlined,
+                        label: 'Edit',
+                        color: widget.theme.infoColor,
+                        onTap: _openEdit,
+                      ),
+                      const SizedBox(width: 8),
+                      _actionButton(
+                        icon: Icons.delete_outline_rounded,
+                        label: 'Delete',
+                        color: widget.theme.errorColor,
+                        onTap: _delete,
                       ),
                     ],
                   ),
@@ -377,6 +368,45 @@ class _TaskCardState extends State<TaskCard>
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _actionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 15, color: color),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

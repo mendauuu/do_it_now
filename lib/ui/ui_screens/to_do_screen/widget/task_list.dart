@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../theme/clock_theme.dart';
-import '../../../../blocs/task_bloc.dart';
+import 'package:do_it_now/ui/theme/clock_theme.dart';
+import 'package:do_it_now/blocs/task_bloc.dart';
 import 'task_card.dart';
 
 class TaskListWidget extends StatelessWidget {
   final ClockTheme theme;
-
-  const TaskListWidget({
-    super.key,
-    required this.theme,
-  });
+  const TaskListWidget({super.key, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -22,17 +18,11 @@ class TaskListWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircularProgressIndicator(
-                  color: theme.buttonColor,
-                  strokeWidth: 3,
-                ),
+                    color: theme.buttonColor, strokeWidth: 3),
                 const SizedBox(height: 16),
-                Text(
-                  'Loading tasks...',
-                  style: TextStyle(
-                    color: theme.secondaryTextColor,
-                    fontSize: 14,
-                  ),
-                ),
+                Text('Loading tasks…',
+                    style: TextStyle(
+                        color: theme.secondaryTextColor, fontSize: 14)),
               ],
             ),
           );
@@ -43,28 +33,21 @@ class TaskListWidget extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 56,
-                  color: theme.errorColor.withValues(alpha: 0.6),
-                ),
+                Icon(Icons.error_outline,
+                    size: 56, color: theme.errorColor.withValues(alpha: 0.6)),
                 const SizedBox(height: 12),
-                Text(
-                  'Oops! Something went wrong',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: theme.textColor,
-                  ),
-                ),
+                Text('Something went wrong',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textColor)),
                 const SizedBox(height: 4),
-                Text(
-                  state.error,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.secondaryTextColor,
-                  ),
-                  textAlign: TextAlign.center,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(state.error,
+                      style: TextStyle(
+                          fontSize: 12, color: theme.secondaryTextColor),
+                      textAlign: TextAlign.center),
                 ),
               ],
             ),
@@ -72,14 +55,9 @@ class TaskListWidget extends StatelessWidget {
         }
 
         if (state is TaskLoadSuccess) {
-          // remove completed tasks and show newest first
-          final tasks = state.tasks
-              .where((task) => !task.isDone)
-              .toList()
-              .reversed
-              .toList();
+          final pending = state.tasks.where((t) => !t.isDone).toList();
 
-          if (tasks.isEmpty) {
+          if (pending.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -90,30 +68,20 @@ class TaskListWidget extends StatelessWidget {
                       color: theme.successColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.check_circle_outline,
-                      size: 60,
-                      color: theme.successColor.withValues(alpha: 0.5),
-                    ),
+                    child: Icon(Icons.check_circle_outline,
+                        size: 60,
+                        color: theme.successColor.withValues(alpha: 0.5)),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    'All caught up!',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: theme.textColor,
-                    ),
-                  ),
+                  Text('All caught up!',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: theme.textColor)),
                   const SizedBox(height: 8),
-                  Text(
-                    'No tasks to complete',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: theme.secondaryTextColor,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  Text('No pending tasks',
+                      style: TextStyle(
+                          fontSize: 14, color: theme.secondaryTextColor)),
                 ],
               ),
             );
@@ -121,15 +89,13 @@ class TaskListWidget extends StatelessWidget {
 
           return ListView.builder(
             physics: const BouncingScrollPhysics(),
-            itemCount: tasks.length,
+            itemCount: pending.length,
             itemBuilder: (context, index) {
-              final task = tasks[index];
-
+              final task = pending[index];
               return TaskCard(
-                key: ValueKey('${task.title}_${task.date}'),
+                // Use sqlId as key so Flutter re-uses the widget correctly
+                key: ValueKey(task.sqlId ?? '${task.title}_${task.date}'),
                 task: task,
-                index: index,
-                onDelete: (i) => context.read<TaskBloc>().add(DeleteTask(i)),
                 theme: theme,
               );
             },

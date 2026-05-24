@@ -53,11 +53,7 @@ class CompletedTasksPage extends StatelessWidget {
 
                 return TaskCard(
                   task: task,
-                  index: state.tasks.indexOf(task),
                   theme: theme,
-                  onDelete: (i) {
-                    context.read<TaskBloc>().add(DeleteTask(i));
-                  },
                 );
               },
             );

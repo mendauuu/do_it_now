@@ -1,6 +1,6 @@
-import 'package:do_it_now/ui/ui_screens/analysis/analysis_screen.dart';
 import 'package:flutter/material.dart';
-import '../../../theme/clock_theme.dart';
+import 'package:do_it_now/ui/ui_screens/analysis/analysis_screen.dart';
+import 'package:do_it_now/ui/theme/clock_theme.dart';
 import 'theme_selection_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -20,28 +20,33 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  late String selectedLanguage;
+  late String _language;
 
   @override
   void initState() {
     super.initState();
-    selectedLanguage = 'English';
+    _language = 'English';
   }
 
-  void _openThemeSelection() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ThemeSelectionPage(
-          currentThemeIndex: widget.currentThemeIndex,
-          onThemeChanged: widget.onThemeChanged,
-          theme: widget.theme,
+  void _openThemes() => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ThemeSelectionPage(
+            currentThemeIndex: widget.currentThemeIndex,
+            onThemeChanged: widget.onThemeChanged,
+            theme: widget.theme,
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  void _showLanguageOptions() {
+  void _openAnalytics() => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AnalysisScreen(theme: widget.theme),
+        ),
+      );
+
+  void _showLanguageSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: widget.theme.secondaryBackgroundColor,
@@ -49,7 +54,7 @@ class _SettingsPageState extends State<SettingsPage> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         side: BorderSide(color: widget.theme.borderColor),
       ),
-      builder: (context) => Container(
+      builder: (_) => Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -58,24 +63,21 @@ class _SettingsPageState extends State<SettingsPage> {
               height: 4,
               width: 40,
               decoration: BoxDecoration(
-                color: widget.theme.highlightColor.withOpacity(0.3),
+                color: widget.theme.highlightColor.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Select Language',
-              style: TextStyle(
-                color: widget.theme.textColor,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('Language',
+                style: TextStyle(
+                    color: widget.theme.textColor,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _languageTile("English", true),
-            _languageTile("Español", false),
-            _languageTile("Français", false),
-            _languageTile("Deutsch", false),
+            _langTile('English', true),
+            _langTile('Español', false),
+            _langTile('Français', false),
+            _langTile('O\'zbek', false),
             const SizedBox(height: 16),
           ],
         ),
@@ -83,47 +85,36 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _languageTile(String language, bool enabled) {
-    final isSelected = selectedLanguage == language;
-
+  Widget _langTile(String lang, bool enabled) {
+    final selected = _language == lang;
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color:
-              isSelected ? widget.theme.buttonColor : widget.theme.borderColor,
-          width: isSelected ? 2 : 1,
+          color: selected ? widget.theme.buttonColor : widget.theme.borderColor,
+          width: selected ? 2 : 1,
         ),
       ),
       child: ListTile(
         enabled: enabled,
-        title: Text(
-          language,
-          style: TextStyle(
-            color: enabled
-                ? widget.theme.textColor
-                : widget.theme.secondaryTextColor,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
+        title: Text(lang,
+            style: TextStyle(
+                color: enabled
+                    ? widget.theme.textColor
+                    : widget.theme.secondaryTextColor,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
         subtitle: enabled
             ? null
-            : Text(
-                "Coming soon",
+            : Text('Coming soon',
                 style: TextStyle(
-                  color: widget.theme.secondaryTextColor,
-                  fontSize: 12,
-                ),
-              ),
-        trailing: isSelected
+                    color: widget.theme.secondaryTextColor, fontSize: 12)),
+        trailing: selected
             ? Icon(Icons.check_circle, color: widget.theme.successColor)
             : null,
         onTap: enabled
             ? () {
-                setState(() {
-                  selectedLanguage = language;
-                });
+                setState(() => _language = lang);
                 Navigator.pop(context);
               }
             : null,
@@ -139,190 +130,94 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: widget.theme.backgroundColor,
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          'Settings',
-          style: TextStyle(
-            color: widget.theme.textColor,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Text('Settings',
+            style: TextStyle(
+                color: widget.theme.textColor,
+                fontSize: 22,
+                fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: widget.theme.textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
-                child: Text(
-                  'Appearance',
-                  style: TextStyle(
-                    color: widget.theme.hourHandColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Card(
-                  color: widget.theme.secondaryBackgroundColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(
-                      color: widget.theme.borderColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: widget.theme.hourHandColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.palette,
-                        color: widget.theme.hourHandColor,
-                        size: 24,
-                      ),
-                    ),
-                    title: Text(
-                      'Theme',
-                      style: TextStyle(
-                        color: widget.theme.textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      ClockTheme.themes[widget.currentThemeIndex].name,
-                      style: TextStyle(
-                        color: widget.theme.secondaryTextColor,
-                        fontSize: 13,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.arrow_forward_ios,
-                      color: widget.theme.secondaryTextColor,
-                      size: 16,
-                    ),
-                    onTap: _openThemeSelection,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
-                child: Text(
-                  'Preferences',
-                  style: TextStyle(
-                    color: widget.theme.hourHandColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Card(
-                  color: widget.theme.secondaryBackgroundColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(
-                      color: widget.theme.borderColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: widget.theme.hourHandColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.language,
-                        color: widget.theme.hourHandColor,
-                        size: 24,
-                      ),
-                    ),
-                    title: Text(
-                      'Language',
-                      style: TextStyle(
-                        color: widget.theme.textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      selectedLanguage,
-                      style: TextStyle(
-                        color: widget.theme.secondaryTextColor,
-                        fontSize: 13,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.arrow_forward_ios,
-                      color: widget.theme.secondaryTextColor,
-                      size: 16,
-                    ),
-                    onTap: _showLanguageOptions,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
-                child: Text(
-                  'Analytics',
-                  style: TextStyle(
-                    color: widget.theme.hourHandColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              AnalysisScreen(theme: widget.theme),
-              const SizedBox(height: 20),
-            ],
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        children: [
+          _sectionLabel('Appearance'),
+          _tile(
+            icon: Icons.palette,
+            title: 'Theme',
+            subtitle: ClockTheme.themes[widget.currentThemeIndex].name,
+            onTap: _openThemes,
+          ),
+          const SizedBox(height: 16),
+          _sectionLabel('Preferences'),
+          _tile(
+            icon: Icons.language,
+            title: 'Language',
+            subtitle: _language,
+            onTap: _showLanguageSheet,
+          ),
+          const SizedBox(height: 16),
+          _sectionLabel('Insights'),
+          _tile(
+            icon: Icons.bar_chart_rounded,
+            title: 'Productivity analytics',
+            subtitle: 'View your task stats',
+            onTap: _openAnalytics,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 10, left: 4),
+        child: Text(
+          text.toUpperCase(),
+          style: TextStyle(
+            color: widget.theme.secondaryTextColor,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
           ),
         ),
+      );
+
+  Widget _tile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      color: widget.theme.secondaryBackgroundColor,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: widget.theme.borderColor, width: 1),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: widget.theme.hourHandColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: widget.theme.hourHandColor, size: 22),
+        ),
+        title: Text(title,
+            style: TextStyle(
+                color: widget.theme.textColor,
+                fontSize: 15,
+                fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle,
+            style: TextStyle(
+                color: widget.theme.secondaryTextColor, fontSize: 13)),
+        trailing: Icon(Icons.arrow_forward_ios,
+            color: widget.theme.secondaryTextColor, size: 15),
+        onTap: onTap,
       ),
     );
   }

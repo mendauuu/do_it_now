@@ -15,13 +15,17 @@ import 'blocs/stats_bloc.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Hive
+  // Hive — kept only to migrate any existing data from old installs.
+  // New installs: the box will be empty and no migration runs.
   await Hive.initFlutter();
   Hive.registerAdapter(TaskModelAdapter());
   await Hive.openBox<TaskModel>('tasks');
 
-  // SQL
+  // SQL — primary storage
   await DatabaseInitializer.initialize();
+
+  // One-time migration: copy any old Hive tasks into SQL then clear the box.
+  await _migrateHiveToSQLIfNeeded();
 
   runApp(
     MultiBlocProvider(
@@ -38,6 +42,35 @@ Future<void> main() async {
   );
 }
 
+/// One-time migration. After it runs it sets a flag so it never runs again.
+Future<void> _migrateHiveToSQLIfNeeded() async {
+  final prefs = await SharedPreferences.getInstance();
+  if (prefs.getBool('hive_migration_done') == true) return;
+
+  try {
+    final box = Hive.box<TaskModel>('tasks');
+    if (box.isNotEmpty) {
+      for (final task in box.values) {
+        // Only migrate tasks that don't already have a SQL id
+        if (task.sqlId == null) {
+          await DatabaseInitializer.createTask(
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            category: task.category,
+            dueDate: task.dueDate,
+          );
+        }
+      }
+      await box.clear();
+    }
+    await prefs.setBool('hive_migration_done', true);
+  } catch (e) {
+    // Non-fatal — user keeps their data in SQL from next launch
+    debugPrint('Hive migration error: $e');
+  }
+}
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -46,50 +79,42 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  int _selectedThemeIndex = 1;
+  int _themeIndex = 1;
 
   @override
   void initState() {
     super.initState();
-    _loadThemePreference();
+    _loadTheme();
   }
 
-  Future<void> _loadThemePreference() async {
+  Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedThemeIndex = prefs.getInt('selectedThemeIndex') ?? 1;
-
-    setState(() {
-      _selectedThemeIndex = savedThemeIndex;
-    });
+    setState(() => _themeIndex = prefs.getInt('selectedThemeIndex') ?? 1);
   }
 
   Future<void> _changeTheme(int index) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('selectedThemeIndex', index);
-
-    setState(() {
-      _selectedThemeIndex = index;
-    });
+    setState(() => _themeIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedTheme = ClockTheme.themes[_selectedThemeIndex];
-
+    final theme = ClockTheme.themes[_themeIndex];
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'To-Do App',
+      title: 'Do It Now',
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: selectedTheme.backgroundColor,
-        primaryColor: selectedTheme.hourHandColor,
-        cardColor: selectedTheme.secondaryBackgroundColor,
+        scaffoldBackgroundColor: theme.backgroundColor,
+        primaryColor: theme.hourHandColor,
+        cardColor: theme.secondaryBackgroundColor,
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => SplashScreen(),
-        '/welcome': (context) => WelcomeScreen(),
-        '/todo': (context) => TodoClockFlip(
-              currentThemeIndex: _selectedThemeIndex,
+        '/': (_) => SplashScreen(),
+        '/welcome': (_) => const WelcomeScreen(),
+        '/todo': (_) => TodoClockFlip(
+              currentThemeIndex: _themeIndex,
               onThemeChanged: _changeTheme,
             ),
       },

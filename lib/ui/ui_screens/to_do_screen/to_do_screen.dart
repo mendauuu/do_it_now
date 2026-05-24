@@ -188,7 +188,7 @@ class _TodoPageState extends State<TodoPage> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             children: [
-              InputTask(_controller, theme: widget.theme),
+              InputTask(theme: widget.theme),
               const SizedBox(height: 12),
               Flexible(
                 child: TaskListWidget(theme: widget.theme),
