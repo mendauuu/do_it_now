@@ -26,27 +26,24 @@ class PomodoroTimer extends StatefulWidget {
 
 class _PomodoroTimerState extends State<PomodoroTimer>
     with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
-  // ── Streams ────────────────────────────────────────────────────────────────
   late final StreamController<int> _minutesCtrl;
   late final StreamController<int> _secondsCtrl;
   Timer? _timer;
-  Timer? _hideTimer; // auto-hide controls after 3 s of inactivity
+  Timer? _hideTimer;
 
-  // ── Timer state ────────────────────────────────────────────────────────────
   int _remainingSeconds = 0;
   bool _isRunning = false;
   _PomodoroMode _mode = _PomodoroMode.work;
   int _completedPomodoros = 0;
   bool _isHorizontal = false;
 
-  // ── UI state ───────────────────────────────────────────────────────────────
-  // Vertical mode: controls/dots are hidden while timer runs; tap to reveal.
+  // Controls are shown ONLY when timer is NOT running.
+  // While running: hidden. Tap → show for 2.5 s then hide again.
   bool _controlsVisible = true;
 
-  // ── Animations ─────────────────────────────────────────────────────────────
   late AnimationController _progressCtrl;
-  late AnimationController _controlsFadeCtrl;
-  late Animation<double> _controlsFade;
+  late AnimationController _overlayCtrl; // fades all overlay UI
+  late Animation<double> _overlayFade;
 
   @override
   bool get wantKeepAlive => true;
@@ -56,19 +53,14 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     super.initState();
     _minutesCtrl = StreamController<int>.broadcast();
     _secondsCtrl = StreamController<int>.broadcast();
-
     _progressCtrl = AnimationController(vsync: this);
-
-    _controlsFadeCtrl = AnimationController(
+    _overlayCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 280),
-      value: 1.0,
+      duration: const Duration(milliseconds: 300),
+      value: 1.0, // starts visible
     );
-    _controlsFade = CurvedAnimation(
-      parent: _controlsFadeCtrl,
-      curve: Curves.easeInOut,
-    );
-
+    _overlayFade =
+        CurvedAnimation(parent: _overlayCtrl, curve: Curves.easeInOut);
     _resetToMode(_mode, silent: true);
   }
 
@@ -79,27 +71,31 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     _minutesCtrl.close();
     _secondsCtrl.close();
     _progressCtrl.dispose();
-    _controlsFadeCtrl.dispose();
+    _overlayCtrl.dispose();
     super.dispose();
   }
 
-  // ── Timer logic ────────────────────────────────────────────────────────────
+  // ── Duration ───────────────────────────────────────────────────────────────
 
-  int _durationFor(_PomodoroMode mode) => switch (mode) {
+  int _durationFor(_PomodoroMode m) => switch (m) {
         _PomodoroMode.work => widget.workDuration * 60,
         _PomodoroMode.shortBreak => widget.shortBreakDuration * 60,
         _PomodoroMode.longBreak => widget.longBreakDuration * 60,
       };
 
+  // ── Timer control ──────────────────────────────────────────────────────────
+
   void _resetToMode(_PomodoroMode mode, {bool silent = false}) {
     _timer?.cancel();
+    _hideTimer?.cancel();
     _mode = mode;
     _remainingSeconds = _durationFor(mode);
     _isRunning = false;
     _progressCtrl.value = 1.0;
+    _controlsVisible = true;
+    _overlayCtrl.forward(); // always show controls when stopped
     if (!silent) setState(() {});
     _pushDisplay();
-    _showControls(); // always show controls when mode resets
   }
 
   void _pushDisplay() {
@@ -109,8 +105,10 @@ class _PomodoroTimerState extends State<PomodoroTimer>
 
   void _start() {
     if (_isRunning) return;
-    setState(() => _isRunning = true);
     final total = _durationFor(_mode).toDouble();
+    setState(() => _isRunning = true);
+    // Hide controls immediately when timer starts
+    _hideOverlay();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
@@ -120,20 +118,20 @@ class _PomodoroTimerState extends State<PomodoroTimer>
         _onSessionComplete();
       }
     });
-    // Auto-hide controls 2 s after starting (vertical mode only)
-    if (!_isHorizontal) _scheduleHide();
   }
 
   void _pause() {
     _timer?.cancel();
+    _hideTimer?.cancel();
     setState(() => _isRunning = false);
-    _showControls(); // always reveal on pause
+    _showOverlay(); // show controls when paused
   }
 
   void _reset() => _resetToMode(_mode);
 
   void _onSessionComplete() {
     _timer?.cancel();
+    _hideTimer?.cancel();
     HapticFeedback.heavyImpact();
     if (_mode == _PomodoroMode.work) {
       _completedPomodoros++;
@@ -160,55 +158,60 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     ));
   }
 
-  // ── Controls visibility ────────────────────────────────────────────────────
+  // ── Overlay visibility ─────────────────────────────────────────────────────
 
-  void _showControls() {
+  void _showOverlay() {
     _hideTimer?.cancel();
-    if (!_controlsVisible) {
-      setState(() => _controlsVisible = true);
-      _controlsFadeCtrl.forward();
-    }
-    // If timer is running, schedule auto-hide again
-    if (_isRunning) _scheduleHide();
+    setState(() => _controlsVisible = true);
+    _overlayCtrl.forward();
   }
 
-  void _scheduleHide() {
-    _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _isRunning && !_isHorizontal) {
-        setState(() => _controlsVisible = false);
-        _controlsFadeCtrl.reverse();
-      }
-    });
+  void _hideOverlay() {
+    setState(() => _controlsVisible = false);
+    _overlayCtrl.reverse();
   }
 
+  /// Tap while running → show for 2.5 s then hide again.
+  /// Tap while already showing → hide immediately.
   void _onTapScreen() {
-    if (_isHorizontal) return;
-    if (_controlsVisible && _isRunning) {
-      // Already visible → hide immediately
+    if (!_isRunning)
+      return; // not running → controls always visible, do nothing
+    if (_controlsVisible) {
       _hideTimer?.cancel();
-      setState(() => _controlsVisible = false);
-      _controlsFadeCtrl.reverse();
+      _hideOverlay();
     } else {
-      _showControls();
+      _showOverlay();
+      _hideTimer?.cancel();
+      _hideTimer = Timer(const Duration(milliseconds: 2500), () {
+        if (mounted && _isRunning) _hideOverlay();
+      });
     }
   }
 
   void _toggleOrientation() {
+    _hideTimer?.cancel();
     setState(() {
       _isHorizontal = !_isHorizontal;
-      _controlsVisible = true;
+      // Keep current visibility state — if running keep hidden
+      _controlsVisible = !_isRunning;
     });
-    _controlsFadeCtrl.value = 1.0;
-    _hideTimer?.cancel();
+    if (!_isRunning) {
+      _overlayCtrl.value = 1.0;
+    }
   }
 
-  // ── Mode color / label ─────────────────────────────────────────────────────
+  // ── Colors ─────────────────────────────────────────────────────────────────
 
   Color get _modeColor => switch (_mode) {
         _PomodoroMode.work => widget.theme.secondHandColor,
         _PomodoroMode.shortBreak => widget.theme.successColor,
         _PomodoroMode.longBreak => widget.theme.infoColor,
+      };
+
+  String get _modeLabel => switch (_mode) {
+        _PomodoroMode.work => 'Focus',
+        _PomodoroMode.shortBreak => 'Short Break',
+        _PomodoroMode.longBreak => 'Long Break',
       };
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -233,178 +236,187 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // VERTICAL LAYOUT
-  // Phone is held sideways — PageView has rotated the whole screen 90°.
-  // bc.maxWidth  = physical screen height  (~800 px)
-  // bc.maxHeight = physical screen width   (~360 px)
+  // VERTICAL  (phone sideways, PageView rotated 90°)
   //
-  // Strategy: make the flip panels fill as much height as possible.
-  // Controls and mode dots slide in/out on tap.
+  // bc.maxWidth  ≈ screen height  (~800 px)
+  // bc.maxHeight ≈ screen width   (~360 px)
+  //
+  // The clock fills the WHOLE screen.
+  // Controls are a Stack overlay — they don't steal space from the clock.
   // ══════════════════════════════════════════════════════════════════════════
-
   Widget _buildVertical(BoxConstraints bc) {
-    // Everything is rendered rotated 90°, so "height" below means
-    // the physical horizontal extent of the phone.
-    //
-    // We want the two flip panels to use almost all available height.
-    // Reserve only a small footer for the play button (shown always).
-    const playBtnH = 70.0; // always-visible play/pause button row
-    const ringPad = 20.0; // ring padding each side
-    const panelGap = 6.0; // gap between minute & second panel
-    const extraPad = 12.0; // small top padding
-
-    final availH = bc.maxHeight - playBtnH - ringPad * 2 - panelGap - extraPad;
-    final panelH = availH / 2;
-    final baseSize = (panelH / 1.75).clamp(32.0, 130.0);
+    final maxAvailableWidth = bc.maxWidth * 0.92;
+    const panelGap = 16.0;
+    final usableSpace = maxAvailableWidth - panelGap;
+    final calculatedBase = usableSpace / 4.3;
+    final baseSize = calculatedBase.clamp(40.0, 240.0);
 
     return RotatedBox(
       quarterTurns: 1,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          // ── Full-screen ring + panels ──────────────────────────────────
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(height: extraPad),
-              _progressRing(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _flipUnit(
-                        stream: _minutesCtrl.stream,
-                        value: _remainingSeconds ~/ 60,
-                        baseSize: baseSize),
-                    SizedBox(height: panelGap),
-                    _flipUnit(
-                        stream: _secondsCtrl.stream,
-                        value: _remainingSeconds % 60,
-                        baseSize: baseSize),
-                  ],
+          // ── 1. CLOCK ─────────────────────────────────────────────────────
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _flipUnit(
+                  stream: _minutesCtrl.stream,
+                  value: _remainingSeconds ~/ 60,
+                  baseSize: baseSize,
                 ),
-              ),
-              // Always-visible play/pause + orientation toggle
-              SizedBox(
-                height: playBtnH,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    RotatedBox(
-                      quarterTurns: -1,
-                      child: _controlBtn(
-                        icon: _isHorizontal
-                            ? Icons.stay_current_portrait_rounded
-                            : Icons.stay_current_landscape_rounded,
-                        color: widget.theme.secondaryTextColor,
-                        bgColor: widget.theme.secondaryBackgroundColor,
-                        onTap: _toggleOrientation,
-                        size: 38,
+                const SizedBox(height: panelGap),
+                _flipUnit(
+                  stream: _secondsCtrl.stream,
+                  value: _remainingSeconds % 60,
+                  baseSize: baseSize,
+                ),
+              ],
+            ),
+          ),
+
+          // ── 2. OVERLAY: mode label + dots (top) ───────────────────────────
+          if (!_isRunning || _controlsVisible)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: FadeTransition(
+                opacity: _overlayFade,
+                child: IgnorePointer(
+                  ignoring: !_controlsVisible,
+                  child: RotatedBox(
+                    quarterTurns: 0,
+                    child: SafeArea(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 10),
+                          _modeTabs(),
+                          const SizedBox(height: 8),
+                          _pomodoroDots(),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    RotatedBox(
-                      quarterTurns: -1,
-                      child: _controlBtn(
+                  ),
+                ),
+              ),
+            ),
+
+          // ── 3. OVERLAY: action controls bar (bottom) ──────────────────────
+          // HIDES EVERYTHING when the timer is running, unless user taps screen
+          if (!_isRunning || _controlsVisible)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: RotatedBox(
+                quarterTurns: 0,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Reset Button
+                      FadeTransition(
+                        opacity: _overlayFade,
+                        child: IgnorePointer(
+                          ignoring: !_controlsVisible,
+                          child: _btn(
+                            icon: Icons.replay_rounded,
+                            color: widget.theme.secondaryTextColor,
+                            bg: widget.theme.secondaryBackgroundColor
+                                .withValues(alpha: 0.8),
+                            size: 44,
+                            onTap: _reset,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+
+                      // Play/Pause Button
+                      _btn(
                         icon: _isRunning
                             ? Icons.pause_rounded
                             : Icons.play_arrow_rounded,
                         color: widget.theme.backgroundColor,
-                        bgColor: _modeColor,
+                        bg: _modeColor,
+                        size: 64,
                         onTap: _isRunning ? _pause : _start,
-                        size: 56,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Tomato count — always visible
-                    RotatedBox(
-                      quarterTurns: -1,
-                      child: _tomatoCount(),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+
+                      // Skip Button
+                      FadeTransition(
+                        opacity: _overlayFade,
+                        child: IgnorePointer(
+                          ignoring: !_controlsVisible,
+                          child: _btn(
+                            icon: Icons.skip_next_rounded,
+                            color: widget.theme.secondaryTextColor,
+                            bg: widget.theme.secondaryBackgroundColor
+                                .withValues(alpha: 0.8),
+                            size: 44,
+                            onTap: _onSessionComplete,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
 
-          // ── Overlay: mode tabs + dots + extra controls (auto-hide) ─────
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: FadeTransition(
-              opacity: _controlsFade,
-              child: IgnorePointer(
-                ignoring: !_controlsVisible,
-                child: RotatedBox(
-                  quarterTurns: -1,
-                  child: Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    child: Column(
+          // ── 4. OVERLAY: orientation toggle + tomato count (top-right) ─────
+          if (!_isRunning || _controlsVisible)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: FadeTransition(
+                opacity: _overlayFade,
+                child: IgnorePointer(
+                  ignoring: !_controlsVisible,
+                  child: RotatedBox(
+                    quarterTurns: 0,
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _modeAndDots(),
+                        _tomatoCount(),
+                        const SizedBox(width: 8),
+                        _btn(
+                          icon: Icons.crop_landscape_rounded,
+                          color: widget.theme.secondaryTextColor,
+                          bg: widget.theme.secondaryBackgroundColor
+                              .withValues(alpha: 0.7),
+                          size: 34,
+                          onTap: _toggleOrientation,
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // ── Overlay: extra controls bottom (reset + skip) ─────────────
-          Positioned(
-            bottom: playBtnH + 4,
-            left: 0,
-            right: 0,
-            child: FadeTransition(
-              opacity: _controlsFade,
-              child: IgnorePointer(
-                ignoring: !_controlsVisible,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    RotatedBox(
-                      quarterTurns: -1,
-                      child: _controlBtn(
-                        icon: Icons.refresh_rounded,
-                        color: widget.theme.secondaryTextColor,
-                        bgColor: widget.theme.secondaryBackgroundColor,
-                        onTap: _reset,
-                        size: 42,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    RotatedBox(
-                      quarterTurns: -1,
-                      child: _controlBtn(
-                        icon: Icons.skip_next_rounded,
-                        color: widget.theme.secondaryTextColor,
-                        bgColor: widget.theme.secondaryBackgroundColor,
-                        onTap: _onSessionComplete,
-                        size: 42,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Hint text: "Tap to show controls" ─────────────────────────
-          if (!_controlsVisible)
+          // ── 5. Hidden Layout Interaction Subtitle Hint ───────────────────
+          if (_isRunning && !_controlsVisible)
             Positioned(
-              bottom: playBtnH + 6,
+              bottom: 12,
               left: 0,
               right: 0,
               child: RotatedBox(
                 quarterTurns: -1,
                 child: Center(
                   child: Text(
-                    'Tap to show controls',
+                    'Tap for controls',
                     style: TextStyle(
                       fontSize: 11,
                       color: widget.theme.secondaryTextColor
-                          .withValues(alpha: 0.5),
-                      letterSpacing: 0.4,
+                          .withValues(alpha: 0.35),
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -416,106 +428,216 @@ class _PomodoroTimerState extends State<PomodoroTimer>
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // HORIZONTAL LAYOUT  (portrait, no rotation)
+  // HORIZONTAL  (portrait, no rotation needed)
+  //
+  // bc.maxHeight ≈ full screen height (~800 px)
+  // Clock fills most of the height. Controls are a small strip at the bottom.
   // ══════════════════════════════════════════════════════════════════════════
-
   Widget _buildHorizontal(BoxConstraints bc) {
-    const controlsH = 64.0;
-    const dotsH = 68.0;
-    const gapH = 16.0;
+    // Use 92% of the wide screen width for the clock area
+    final maxAvailableWidth = bc.maxWidth * 0.92;
 
-    final panelH = (bc.maxHeight - controlsH - dotsH - gapH * 4)
-        .clamp(60.0, double.infinity);
-    final baseSize = (panelH / 1.75).clamp(30.0, 110.0);
+    // We have 2 cards side-by-side + 1 gap.
+    // Total width ratio = 2.1 (card 1 width) + 2.1 (card 2 width) = 4.2
+    const panelGap = 24.0;
+    final usableWidth = maxAvailableWidth - panelGap;
+    final calculatedBase = usableWidth / 4.2;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+    // Clamp safely, but allow a massive size for landscape screens
+    final baseSize = calculatedBase.clamp(40.0, 320.0);
+
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        SizedBox(height: gapH),
-        _modeAndDots(),
-        SizedBox(height: gapH),
-        _progressRing(
+        // ── 1. THE GIANT CLOCK (Side-by-Side Horizon Format) ───────────
+        Center(
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _flipUnit(
-                  stream: _minutesCtrl.stream,
-                  value: _remainingSeconds ~/ 60,
-                  baseSize: baseSize),
-              _colonSeparator(baseSize),
+                stream: _minutesCtrl.stream,
+                value: _remainingSeconds ~/ 60,
+                baseSize: baseSize,
+              ),
+              SizedBox(width: panelGap),
               _flipUnit(
-                  stream: _secondsCtrl.stream,
-                  value: _remainingSeconds % 60,
-                  baseSize: baseSize),
+                stream: _secondsCtrl.stream,
+                value: _remainingSeconds % 60,
+                baseSize: baseSize,
+              ),
             ],
           ),
         ),
-        SizedBox(height: gapH),
-        _controls(),
-        SizedBox(height: gapH),
-      ],
-    );
-  }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // SHARED SUB-WIDGETS
-  // ══════════════════════════════════════════════════════════════════════════
-
-  Widget _colonSeparator(double baseSize) => Padding(
-        padding: EdgeInsets.symmetric(horizontal: baseSize * 0.15),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _dot(),
-            SizedBox(height: baseSize * 0.35),
-            _dot(),
-          ],
-        ),
-      );
-
-  Widget _dot() => Container(
-        width: 7,
-        height: 7,
-        decoration: BoxDecoration(color: _modeColor, shape: BoxShape.circle),
-      );
-
-  Widget _modeAndDots() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _modeTab('Focus', _PomodoroMode.work),
-            const SizedBox(width: 8),
-            _modeTab('Short', _PomodoroMode.shortBreak),
-            const SizedBox(width: 8),
-            _modeTab('Long', _PomodoroMode.longBreak),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(4, (i) {
-            final filled = i < (_completedPomodoros % 4);
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: filled ? 12 : 8,
-              height: filled ? 12 : 8,
-              decoration: BoxDecoration(
-                color: filled
-                    ? widget.theme.secondHandColor
-                    : widget.theme.borderColor.withValues(alpha: 0.3),
-                shape: BoxShape.circle,
+        // ── 2. TOP OVERLAY: Mode Indicator Tags ─────────────────────────
+        if (!_isRunning || _controlsVisible)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: FadeTransition(
+              opacity: _overlayFade,
+              child: IgnorePointer(
+                ignoring: !_controlsVisible,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _modeTabs(),
+                        const SizedBox(height: 6),
+                        _pomodoroDots(),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            );
-          }),
+            ),
+          ),
+
+        // ── 3. TOP-RIGHT OVERLAY: Secondary Icons ────────────────────────
+        if (!_isRunning || _controlsVisible)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: FadeTransition(
+              opacity: _overlayFade,
+              child: IgnorePointer(
+                ignoring: !_controlsVisible,
+                child: SafeArea(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _tomatoCount(),
+                      const SizedBox(width: 10),
+                      _btn(
+                        icon: Icons
+                            .crop_portrait_rounded, // Changed to portrait icon for toggle
+                        color: widget.theme.secondaryTextColor,
+                        bg: widget.theme.secondaryBackgroundColor
+                            .withValues(alpha: 0.7),
+                        size: 36,
+                        onTap: _toggleOrientation,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // ── 4. BOTTOM OVERLAY: Playback Action Bar ───────────────────────
+        // Kept outside of conditional blocks so the user can always tap to pause
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: FadeTransition(
+            opacity: _overlayFade,
+            child: IgnorePointer(
+              ignoring: !_controlsVisible,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _btn(
+                        icon: Icons.replay_rounded,
+                        color: widget.theme.secondaryTextColor,
+                        bg: widget.theme.secondaryBackgroundColor
+                            .withValues(alpha: 0.8),
+                        size: 46,
+                        onTap: _reset,
+                      ),
+                      const SizedBox(width: 24),
+                      _btn(
+                        icon: _isRunning
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: widget.theme.backgroundColor,
+                        bg: _modeColor,
+                        size: 68,
+                        onTap: _isRunning ? _pause : _start,
+                      ),
+                      const SizedBox(width: 24),
+                      _btn(
+                        icon: Icons.skip_next_rounded,
+                        color: widget.theme.secondaryTextColor,
+                        bg: widget.theme.secondaryBackgroundColor
+                            .withValues(alpha: 0.8),
+                        size: 46,
+                        onTap: _onSessionComplete,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
+
+        // ── 5. CLEAN BOTTOM HINT: Subtitle notice ────────────────────────
+        if (_isRunning && !_controlsVisible)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Text(
+                'Tap screen for controls',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: widget.theme.secondaryTextColor.withValues(alpha: 0.3),
+                  letterSpacing: 0.7,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SHARED WIDGETS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Widget _modeTabs() => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _modeTab('Focus', _PomodoroMode.work),
+          const SizedBox(width: 8),
+          _modeTab('Short', _PomodoroMode.shortBreak),
+          const SizedBox(width: 8),
+          _modeTab('Long', _PomodoroMode.longBreak),
+        ],
+      );
+
+  Widget _pomodoroDots() => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(4, (i) {
+          final filled = i < (_completedPomodoros % 4);
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: filled ? 10 : 7,
+            height: filled ? 10 : 7,
+            decoration: BoxDecoration(
+              color: filled
+                  ? widget.theme.secondHandColor
+                  : widget.theme.borderColor.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+          );
+        }),
+      );
 
   Widget _modeTab(String label, _PomodoroMode mode) {
     final selected = _mode == mode;
@@ -523,7 +645,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
       onTap: () => _resetToMode(mode),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color:
@@ -547,69 +669,6 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     );
   }
 
-  Widget _progressRing({required Widget child}) {
-    return AnimatedBuilder(
-      animation: _progressCtrl,
-      builder: (_, __) => CustomPaint(
-        painter: _RingPainter(
-          progress: _progressCtrl.value,
-          color: _modeColor,
-          trackColor: widget.theme.borderColor.withValues(alpha: 0.12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: child,
-        ),
-      ),
-    );
-  }
-
-  /// Full horizontal controls row (used in horizontal mode only)
-  Widget _controls() {
-    final bg = widget.theme.secondaryBackgroundColor;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _controlBtn(
-          icon: _isHorizontal
-              ? Icons.stay_current_portrait_rounded
-              : Icons.stay_current_landscape_rounded,
-          color: widget.theme.secondaryTextColor,
-          bgColor: bg,
-          onTap: _toggleOrientation,
-          size: 36,
-        ),
-        const SizedBox(width: 10),
-        _controlBtn(
-          icon: Icons.refresh_rounded,
-          color: widget.theme.secondaryTextColor,
-          bgColor: bg,
-          onTap: _reset,
-          size: 44,
-        ),
-        const SizedBox(width: 12),
-        _controlBtn(
-          icon: _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          color: widget.theme.backgroundColor,
-          bgColor: _modeColor,
-          onTap: _isRunning ? _pause : _start,
-          size: 58,
-        ),
-        const SizedBox(width: 12),
-        _controlBtn(
-          icon: Icons.skip_next_rounded,
-          color: widget.theme.secondaryTextColor,
-          bgColor: bg,
-          onTap: _onSessionComplete,
-          size: 44,
-        ),
-        const SizedBox(width: 10),
-        _tomatoCount(),
-      ],
-    );
-  }
-
   Widget _tomatoCount() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
@@ -621,57 +680,89 @@ class _PomodoroTimerState extends State<PomodoroTimer>
         child: Text(
           '$_completedPomodoros 🍅',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             color: widget.theme.secondHandColor,
           ),
         ),
       );
 
-  Widget _controlBtn({
-    required IconData icon,
-    required Color color,
-    required Color bgColor,
-    required VoidCallback onTap,
-    required double size,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: bgColor,
-          shape: BoxShape.circle,
-          boxShadow: size >= 50
-              ? [
-                  BoxShadow(
-                    color: bgColor.withValues(alpha: 0.45),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : null,
+  /// Ring drawn via CustomPaint around the child — adds no layout constraints.
+  Widget _progressRing({required Widget child, double ringPad = 12}) {
+    return AnimatedBuilder(
+      animation: _progressCtrl,
+      builder: (_, __) => CustomPaint(
+        painter: _RingPainter(
+          progress: _progressCtrl.value,
+          color: _modeColor,
+          trackColor: widget.theme.borderColor.withValues(alpha: 0.1),
         ),
-        child: Icon(icon, color: color, size: size * 0.46),
+        child: Padding(
+          padding: EdgeInsets.all(ringPad),
+          child: child,
+        ),
       ),
     );
   }
+
+  Widget _colonSeparator(double base) => Padding(
+        padding: EdgeInsets.symmetric(horizontal: base * 0.12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          _dot(),
+          SizedBox(height: base * 0.3),
+          _dot(),
+        ]),
+      );
+
+  Widget _dot() => Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: _modeColor, shape: BoxShape.circle),
+      );
+
+  Widget _btn({
+    required IconData icon,
+    required Color color,
+    required Color bg,
+    required double size,
+    required VoidCallback onTap,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: bg,
+            shape: BoxShape.circle,
+            boxShadow: size >= 55
+                ? [
+                    BoxShadow(
+                      color: bg.withValues(alpha: 0.5),
+                      blurRadius: 18,
+                      offset: const Offset(0, 5),
+                    )
+                  ]
+                : null,
+          ),
+          child: Icon(icon, color: color, size: size * 0.46),
+        ),
+      );
 
   Widget _flipUnit({
     required Stream<int> stream,
     required int value,
     required double baseSize,
   }) {
-    final s = baseSize.clamp(28.0, 130.0);
+    final s = baseSize.clamp(36.0, 220.0);
     return SizedBox(
-      width: s * 2.0,
-      height: s * 1.75,
+      width: s * 2.1,
+      height: s * 2.15, // Increased from 1.75 to 2.15 to make it taller
       child: FlipPanelPlus<int>.stream(
         itemStream: stream,
         initValue: value,
-        duration: const Duration(milliseconds: 450),
+        duration: const Duration(milliseconds: 480),
         spacing: s * 0.04,
         direction: FlipDirection.down,
         itemBuilder: (_, v) => _flipCard(v, s),
@@ -679,18 +770,21 @@ class _PomodoroTimerState extends State<PomodoroTimer>
     );
   }
 
-  Widget _flipCard(int value, double baseSize) {
+  Widget _flipCard(int value, double s) {
     return Container(
       decoration: BoxDecoration(
         color: widget.theme.secondaryBackgroundColor,
-        borderRadius: BorderRadius.circular(baseSize * 0.1),
+        borderRadius: BorderRadius.circular(s * 0.1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
+        border: Border.all(
+          color: widget.theme.borderColor.withValues(alpha: 0.1),
+        ),
       ),
       child: CustomPaint(
         painter: _CardLinePainter(theme: widget.theme),
@@ -698,10 +792,12 @@ class _PomodoroTimerState extends State<PomodoroTimer>
           child: Text(
             value.toString().padLeft(2, '0'),
             style: TextStyle(
-              fontSize: baseSize * 1.15,
-              fontWeight: FontWeight.bold,
+              fontSize: s *
+                  1.35, // Slightly increased font size to match the taller card
+              fontWeight: FontWeight.w900,
               color: widget.theme.textColor,
-              letterSpacing: 2,
+              letterSpacing: 3,
+              // Removed height: 1 to allow the text to center properly in the taller box
             ),
           ),
         ),
@@ -716,40 +812,32 @@ class _RingPainter extends CustomPainter {
   final double progress;
   final Color color;
   final Color trackColor;
+
   _RingPainter(
       {required this.progress, required this.color, required this.trackColor});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide / 2) - 5;
-    const start = -3.14159 / 2;
-    const full = 2 * 3.14159;
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = (size.shortestSide / 2) - 4;
+    const s = -3.14159 / 2;
+    const f = 2 * 3.14159;
 
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      start,
-      full,
-      false,
-      Paint()
-        ..color = trackColor
-        ..strokeWidth = 3.5
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
+    final track = Paint()
+      ..color = trackColor
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r), s, f, false, track);
 
     if (progress > 0) {
+      final arc = Paint()
+        ..color = color
+        ..strokeWidth = 4
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        start,
-        full * progress,
-        false,
-        Paint()
-          ..color = color
-          ..strokeWidth = 3.5
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round,
-      );
+          Rect.fromCircle(center: c, radius: r), s, f * progress, false, arc);
     }
   }
 
@@ -770,7 +858,7 @@ class _CardLinePainter extends CustomPainter {
       Offset(0, size.height / 2),
       Offset(size.width, size.height / 2),
       Paint()
-        ..color = theme.borderColor.withValues(alpha: 0.35)
+        ..color = theme.borderColor.withValues(alpha: 0.3)
         ..strokeWidth = 1,
     );
   }

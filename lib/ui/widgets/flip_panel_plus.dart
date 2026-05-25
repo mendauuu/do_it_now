@@ -220,7 +220,13 @@ class _FlipPanelPlusState<T> extends State<FlipPanelPlus>
         child: Align(
           alignment: Alignment.topCenter,
           heightFactor: 0.5,
-          child: widget,
+          widthFactor:
+              1.0, // Explicitly locks the horizontal scaling boundaries
+          child: Align(
+            alignment: Alignment
+                .center, // Keeps the digit perfectly centered vertically
+            child: widget,
+          ),
         ),
       );
     }
@@ -230,7 +236,13 @@ class _FlipPanelPlusState<T> extends State<FlipPanelPlus>
         child: Align(
           alignment: Alignment.bottomCenter,
           heightFactor: 0.5,
-          child: widget,
+          widthFactor:
+              1.0, // Explicitly locks the horizontal scaling boundaries
+          child: Align(
+            alignment: Alignment
+                .center, // Keeps the digit perfectly centered vertically
+            child: widget,
+          ),
         ),
       );
     }

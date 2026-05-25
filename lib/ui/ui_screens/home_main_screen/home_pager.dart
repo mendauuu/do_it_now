@@ -22,7 +22,6 @@ class TodoClockFlip extends StatefulWidget {
 class _TodoClockFlipState extends State<TodoClockFlip> {
   final PageController _pageController = PageController();
   late ClockTheme currentTheme;
-  // keep track of selected theme locally so child widgets can update immediately
   late int _localThemeIndex;
   int _currentPageIndex = 0;
 
@@ -50,7 +49,6 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
   void didUpdateWidget(covariant TodoClockFlip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentThemeIndex != widget.currentThemeIndex) {
-      // parent changed the theme index (maybe via navigation or external)
       _localThemeIndex = widget.currentThemeIndex;
       setState(() {
         currentTheme = ClockTheme.themes[_localThemeIndex];
@@ -68,6 +66,17 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: currentTheme.backgroundColor,
+
+      // ── THE STRUCTURAL FIXES ──
+      // 1. Prevents Android keyboard or gesture overlays from resizing/pushing your layout box up
+      // resizeToAvoidBottomInset: false,
+
+      // 2. Forces the app background and body to fill behind the bottom navigation panel completely
+      // extendBody: true,
+
+      // 3. Forces the app body layout to bleed directly behind the top status bar and camera cutout
+      // extendBodyBehindAppBar: true,
+
       body: PageView(
         controller: _pageController,
         physics: const BouncingScrollPhysics(),
@@ -91,18 +100,25 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
           ),
           RotatedBox(
             quarterTurns: 3,
-            child: PomodoroTimer(
-              theme: currentTheme,
+            child: SafeArea(
+              // Because of quarterTurns: 3, physical top padding translates to the right
+              top: false,
+              bottom: false,
+              left: false,
+              right: true, // Respect the padding barrier dynamically
+              child: PomodoroTimer(
+                theme: currentTheme,
+              ),
             ),
           ),
-          RotatedBox(
-            quarterTurns: 3,
-            child: FlipClockWidget(
-              theme: currentTheme,
-              pageController: _pageController,
-              currentTheme: currentTheme,
-            ),
-          ),
+          // RotatedBox(
+          //   quarterTurns: 3,
+          //   child: FlipClockWidget(
+          //     theme: currentTheme,
+          //     pageController: _pageController,
+          //     currentTheme: currentTheme,
+          //   ),
+          // ),
         ],
       ),
     );
