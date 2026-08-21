@@ -29,27 +29,20 @@ class TodoPage extends StatefulWidget {
 
 class _TodoPageState extends State<TodoPage> {
   final TextEditingController _controller = TextEditingController();
-  final PageController _pageController = PageController();
   late ClockTheme currentTheme;
 
   @override
   void initState() {
     super.initState();
     currentTheme = ClockTheme.themes[widget.currentThemeIndex];
-
-    _pageController.addListener(() {
-      setState(() {
-        _pageController.page?.round() ?? 0;
-      });
-    });
-
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // DO NOT set immersive here — it overrides the cutout-safe setup in main()
+    // and causes the camera area to go black.
+    // Orientation is already locked to portrait in main().
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -78,7 +71,6 @@ class _TodoPageState extends State<TodoPage> {
   @override
   void didUpdateWidget(TodoPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (oldWidget.theme != widget.theme ||
         oldWidget.currentThemeIndex != widget.currentThemeIndex) {
       currentTheme = ClockTheme.themes[widget.currentThemeIndex];
@@ -88,113 +80,102 @@ class _TodoPageState extends State<TodoPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 600,
-      width: 360,
-      decoration: BoxDecoration(
-        color: widget.theme.backgroundColor,
-      ),
-      child: Scaffold(
-        backgroundColor: widget.theme.backgroundColor,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: ClipRRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: widget.theme.borderColor.withValues(alpha: 0.15),
-                    ),
+    return Scaffold(
+      backgroundColor: widget.theme.backgroundColor,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: widget.theme.borderColor.withValues(alpha: 0.15),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          "Do it now",
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                            height: 1.0,
-                            color: widget.theme.textColor,
-                          ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Do it now',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                          height: 1.0,
+                          color: widget.theme.textColor,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "Stay focused",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w400,
-                            color: widget.theme.secondaryTextColor,
-                            letterSpacing: 0.3,
-                            height: 1.0,
-                          ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Stay focused',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: widget.theme.secondaryTextColor,
+                          letterSpacing: 0.3,
+                          height: 1.0,
                         ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        // completed tasks button
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _openCompletedTasks,
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              child: Icon(
-                                Icons.check_circle_outline,
-                                color: widget.theme.buttonColor,
-                                size: 22,
-                              ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _openCompletedTasks,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(
+                              Icons.check_circle_outline,
+                              color: widget.theme.buttonColor,
+                              size: 22,
                             ),
                           ),
                         ),
-
-                        // settings button
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _openSettings,
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              child: Icon(
-                                Icons.settings_rounded,
-                                color: widget.theme.buttonColor,
-                                size: 22,
-                              ),
+                      ),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _openSettings,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(
+                              Icons.settings_rounded,
+                              color: widget.theme.buttonColor,
+                              size: 22,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Column(
-            children: [
-              InputTask(theme: widget.theme),
-              const SizedBox(height: 12),
-              Flexible(
-                child: TaskListWidget(theme: widget.theme),
-              ),
-            ],
-          ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          children: [
+            InputTask(theme: widget.theme),
+            const SizedBox(height: 12),
+            Flexible(
+              child: TaskListWidget(theme: widget.theme),
+            ),
+          ],
         ),
       ),
     );

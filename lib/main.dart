@@ -4,6 +4,7 @@ import 'package:do_it_now/ui/welcom/splash_screen.dart';
 import 'package:do_it_now/ui/welcom/welcom_screen.dart';
 import 'package:do_it_now/ui/theme/clock_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:do_it_now/data/database/database_initializer.dart';
@@ -15,8 +16,32 @@ import 'blocs/stats_bloc.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ── SYSTEM UI SETUP ────────────────────────────────────────────────────────
+  try {
+    // Completely hides the top status bar and bottom navigation bar.
+    // Swiping from screen edges brings them back temporarily as overlays.
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    // Style configuration for system bars when they temporarily reappear
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
+
+    // Lock to portrait mode to prevent unexpected layouts
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  } catch (e) {
+    debugPrint('System UI configuration error: $e');
+  }
+
+  // ── DATABASE & MIGRATION SETUP ─────────────────────────────────────────────
   // Hive — kept only to migrate any existing data from old installs.
-  // New installs: the box will be empty and no migration runs.
   await Hive.initFlutter();
   Hive.registerAdapter(TaskModelAdapter());
   await Hive.openBox<TaskModel>('tasks');
@@ -108,6 +133,8 @@ class _MyAppState extends State<MyApp> {
         scaffoldBackgroundColor: theme.backgroundColor,
         primaryColor: theme.hourHandColor,
         cardColor: theme.secondaryBackgroundColor,
+        canvasColor: theme.backgroundColor,
+        dialogBackgroundColor: theme.backgroundColor,
       ),
       initialRoute: '/',
       routes: {
