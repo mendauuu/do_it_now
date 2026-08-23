@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Must match your default theme's backgroundColor.
+         Default theme index = 1 = CyberNeon = 0xFF0A0F1C.
+         If you change the default theme, update this value. -->
+    <color name="app_background">#0A0F1C</color>
+</resources>

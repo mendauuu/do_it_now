@@ -290,14 +290,29 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                   child: RotatedBox(
                     quarterTurns: 0,
                     child: SafeArea(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
                         children: [
-                          const SizedBox(height: 10),
-                          _modeTabs(),
-                          const SizedBox(height: 8),
-                          _pomodoroDots(),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 10),
+                              _modeTabs(),
+                              // const SizedBox(height: 8),
+                              // _pomodoroDots(),
+                            ],
+                          ),
+                          // const SizedBox(height: 4),
+                          // Row(
+                          //   mainAxisSize: MainAxisSize.min,
+                          //   mainAxisAlignment: MainAxisAlignment.center,
+                          //   children: [
+                          //     const SizedBox(height: 10),
+                          //     // _modeTabs(),
+                          //     const SizedBox(height: 8),
+                          //     _pomodoroDots(),
+                          //   ],
+                          // ),
                         ],
                       ),
                     ),
@@ -384,8 +399,8 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _tomatoCount(),
-                        const SizedBox(width: 8),
+                        // _tomatoCount(),
+                        // const SizedBox(width: 8),
                         _btn(
                           icon: Icons.crop_landscape_rounded,
                           color: widget.theme.secondaryTextColor,
@@ -490,7 +505,7 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                       children: [
                         _modeTabs(),
                         const SizedBox(height: 6),
-                        _pomodoroDots(),
+                        // _pomodoroDots(),
                       ],
                     ),
                   ),
@@ -512,8 +527,8 @@ class _PomodoroTimerState extends State<PomodoroTimer>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _tomatoCount(),
-                      const SizedBox(width: 10),
+                      // _tomatoCount(),
+                      // const SizedBox(width: 10),
                       _btn(
                         icon: Icons
                             .crop_portrait_rounded, // Changed to portrait icon for toggle

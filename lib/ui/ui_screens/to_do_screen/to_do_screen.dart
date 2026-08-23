@@ -28,71 +28,75 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage> {
-  final TextEditingController _controller = TextEditingController();
-  late ClockTheme currentTheme;
+  late ClockTheme _theme;
 
   @override
   void initState() {
     super.initState();
-    currentTheme = ClockTheme.themes[widget.currentThemeIndex];
-    // DO NOT set immersive here — it overrides the cutout-safe setup in main()
-    // and causes the camera area to go black.
-    // Orientation is already locked to portrait in main().
+    _theme = ClockTheme.themes[widget.currentThemeIndex];
+    // Do NOT call setEnabledSystemUIMode here — it overrides the immersive
+    // mode set by the parent and causes the black strip to reappear.
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _openSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SettingsPage(
-          currentThemeIndex: widget.currentThemeIndex,
-          onThemeChanged: widget.onThemeChanged,
-          theme: currentTheme,
-        ),
-      ),
-    );
-  }
-
-  void _openCompletedTasks() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CompletedTasksPage(theme: widget.theme),
-      ),
-    );
-  }
-
-  @override
-  void didUpdateWidget(TodoPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.theme != widget.theme ||
-        oldWidget.currentThemeIndex != widget.currentThemeIndex) {
-      currentTheme = ClockTheme.themes[widget.currentThemeIndex];
-      setState(() {});
+  void didUpdateWidget(TodoPage old) {
+    super.didUpdateWidget(old);
+    if (old.currentThemeIndex != widget.currentThemeIndex ||
+        old.theme != widget.theme) {
+      setState(() => _theme = ClockTheme.themes[widget.currentThemeIndex]);
     }
   }
 
+  void _openSettings() => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SettingsPage(
+            currentThemeIndex: widget.currentThemeIndex,
+            onThemeChanged: widget.onThemeChanged,
+            theme: _theme,
+          ),
+        ),
+      );
+
+  void _openCompleted() => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CompletedTasksPage(theme: widget.theme),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
+    // How tall the status bar is — we pad the AppBar content down by this
+    // so text doesn't sit behind the status bar, while the color fills the
+    // full area including behind the status bar.
+    final topPad = MediaQuery.of(context).padding.top;
+
     return Scaffold(
-      backgroundColor: widget.theme.backgroundColor,
+      backgroundColor: _theme.backgroundColor,
+      // Fill behind status bar AND behind bottom nav bar
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
+        // Add topPad so the AppBar is tall enough to cover the status bar area
+        preferredSize: Size.fromHeight(70 + topPad),
         child: ClipRRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              // Top padding pushes content below the status bar
+              padding: EdgeInsets.only(
+                top: topPad + 10,
+                left: 20,
+                right: 20,
+                bottom: 10,
+              ),
               decoration: BoxDecoration(
+                // Same as theme background — no black showing through
+                color: _theme.backgroundColor.withValues(alpha: 0.85),
                 border: Border(
                   bottom: BorderSide(
-                    color: widget.theme.borderColor.withValues(alpha: 0.15),
+                    color: _theme.borderColor.withValues(alpha: 0.15),
                   ),
                 ),
               ),
@@ -110,7 +114,7 @@ class _TodoPageState extends State<TodoPage> {
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
                           height: 1.0,
-                          color: widget.theme.textColor,
+                          color: _theme.textColor,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -119,7 +123,7 @@ class _TodoPageState extends State<TodoPage> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: widget.theme.secondaryTextColor,
+                          color: _theme.secondaryTextColor,
                           letterSpacing: 0.3,
                           height: 1.0,
                         ),
@@ -131,15 +135,12 @@ class _TodoPageState extends State<TodoPage> {
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: _openCompletedTasks,
+                          onTap: _openCompleted,
                           borderRadius: BorderRadius.circular(12),
-                          child: Container(
+                          child: Padding(
                             padding: const EdgeInsets.all(12),
-                            child: Icon(
-                              Icons.check_circle_outline,
-                              color: widget.theme.buttonColor,
-                              size: 22,
-                            ),
+                            child: Icon(Icons.check_circle_outline,
+                                color: _theme.buttonColor, size: 22),
                           ),
                         ),
                       ),
@@ -148,13 +149,10 @@ class _TodoPageState extends State<TodoPage> {
                         child: InkWell(
                           onTap: _openSettings,
                           borderRadius: BorderRadius.circular(12),
-                          child: Container(
+                          child: Padding(
                             padding: const EdgeInsets.all(12),
-                            child: Icon(
-                              Icons.settings_rounded,
-                              color: widget.theme.buttonColor,
-                              size: 22,
-                            ),
+                            child: Icon(Icons.settings_rounded,
+                                color: _theme.buttonColor, size: 22),
                           ),
                         ),
                       ),
@@ -167,14 +165,18 @@ class _TodoPageState extends State<TodoPage> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        // Top padding = AppBar height + status bar, bottom = nav bar height
+        padding: EdgeInsets.only(
+          top: 70 + topPad + 12,
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).padding.bottom + 16,
+        ),
         child: Column(
           children: [
-            InputTask(theme: widget.theme),
+            InputTask(theme: _theme),
             const SizedBox(height: 12),
-            Flexible(
-              child: TaskListWidget(theme: widget.theme),
-            ),
+            Flexible(child: TaskListWidget(theme: _theme)),
           ],
         ),
       ),

@@ -1,7 +1,7 @@
 import 'package:do_it_now/ui/theme/clock_theme.dart';
-import 'package:do_it_now/ui/ui_screens/time_screen/flip_clock_widget.dart';
 import 'package:do_it_now/ui/ui_screens/pomodoro_screen/pomodoro_timer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../to_do_screen/to_do_screen.dart';
 
@@ -19,30 +19,49 @@ class TodoClockFlip extends StatefulWidget {
   State<TodoClockFlip> createState() => _TodoClockFlipState();
 }
 
-class _TodoClockFlipState extends State<TodoClockFlip> {
+class _TodoClockFlipState extends State<TodoClockFlip>
+    with WidgetsBindingObserver {
   final PageController _pageController = PageController();
   late ClockTheme currentTheme;
   late int _localThemeIndex;
   int _currentPageIndex = 0;
 
-  int get currentPageIndex => _currentPageIndex;
-  set currentPageIndex(int value) {
-    setState(() {
-      _currentPageIndex = value;
-    });
-  }
-
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _localThemeIndex = widget.currentThemeIndex;
     currentTheme = ClockTheme.themes[_localThemeIndex];
-
     _pageController.addListener(() {
       setState(() {
         _currentPageIndex = _pageController.page?.round() ?? 0;
       });
     });
+    // Re-apply immersive after build so it sticks
+    WidgetsBinding.instance.addPostFrameCallback((_) => _goImmersive());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Re-apply when app comes back to foreground
+    if (state == AppLifecycleState.resumed) _goImmersive();
+  }
+
+  void _goImmersive() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // Paint bars with theme color for the brief moment they appear on swipe
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: currentTheme.backgroundColor,
+      systemNavigationBarColor: currentTheme.backgroundColor,
+      statusBarIconBrightness:
+          currentTheme.backgroundColor.computeLuminance() > 0.3
+              ? Brightness.dark
+              : Brightness.light,
+      systemNavigationBarIconBrightness:
+          currentTheme.backgroundColor.computeLuminance() > 0.3
+              ? Brightness.dark
+              : Brightness.light,
+    ));
   }
 
   @override
@@ -50,14 +69,14 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentThemeIndex != widget.currentThemeIndex) {
       _localThemeIndex = widget.currentThemeIndex;
-      setState(() {
-        currentTheme = ClockTheme.themes[_localThemeIndex];
-      });
+      setState(() => currentTheme = ClockTheme.themes[_localThemeIndex]);
+      _goImmersive();
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
   }
@@ -66,59 +85,32 @@ class _TodoClockFlipState extends State<TodoClockFlip> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: currentTheme.backgroundColor,
-
-      // ── THE STRUCTURAL FIXES ──
-      // 1. Prevents Android keyboard or gesture overlays from resizing/pushing your layout box up
-      // resizeToAvoidBottomInset: false,
-
-      // 2. Forces the app background and body to fill behind the bottom navigation panel completely
-      // extendBody: true,
-
-      // 3. Forces the app body layout to bleed directly behind the top status bar and camera cutout
-      // extendBodyBehindAppBar: true,
-
+      // These two lines make the body fill BEHIND the status bar and nav bar
+      // so there is zero black strip anywhere.
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       body: PageView(
         controller: _pageController,
-        physics: const BouncingScrollPhysics(),
+        physics: ClampingScrollPhysics(),
         children: [
           TodoPage(
-            onFlip: () {
-              _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            },
+            onFlip: () => _pageController.previousPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            ),
             theme: currentTheme,
             currentThemeIndex: _localThemeIndex,
             onThemeChanged: (int newIndex) {
               _localThemeIndex = newIndex;
               widget.onThemeChanged(newIndex);
-              setState(() {
-                currentTheme = ClockTheme.themes[newIndex];
-              });
+              setState(() => currentTheme = ClockTheme.themes[newIndex]);
+              _goImmersive();
             },
           ),
           RotatedBox(
             quarterTurns: 3,
-            child: SafeArea(
-              // Because of quarterTurns: 3, physical top padding translates to the right
-              top: false,
-              bottom: false,
-              left: false,
-              right: true, // Respect the padding barrier dynamically
-              child: PomodoroTimer(
-                theme: currentTheme,
-              ),
-            ),
+            child: PomodoroTimer(theme: currentTheme),
           ),
-          // RotatedBox(
-          //   quarterTurns: 3,
-          //   child: FlipClockWidget(
-          //     theme: currentTheme,
-          //     pageController: _pageController,
-          //     currentTheme: currentTheme,
-          //   ),
-          // ),
         ],
       ),
     );

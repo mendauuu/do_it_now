@@ -9,74 +9,42 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:do_it_now/data/database/database_initializer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'blocs/task_bloc.dart';
 import 'blocs/stats_bloc.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── SYSTEM UI SETUP ────────────────────────────────────────────────────────
-  try {
-    // Completely hides the top status bar and bottom navigation bar.
-    // Swiping from screen edges brings them back temporarily as overlays.
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [
+    SystemUiOverlay.bottom,
+  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    // Style configuration for system bars when they temporarily reappear
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
-    );
-
-    // Lock to portrait mode to prevent unexpected layouts
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-  } catch (e) {
-    debugPrint('System UI configuration error: $e');
-  }
-
-  // ── DATABASE & MIGRATION SETUP ─────────────────────────────────────────────
-  // Hive — kept only to migrate any existing data from old installs.
   await Hive.initFlutter();
   Hive.registerAdapter(TaskModelAdapter());
   await Hive.openBox<TaskModel>('tasks');
-
-  // SQL — primary storage
+  // SQL
   await DatabaseInitializer.initialize();
-
-  // One-time migration: copy any old Hive tasks into SQL then clear the box.
   await _migrateHiveToSQLIfNeeded();
 
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider<TaskBloc>(
-          create: (_) => TaskBloc()..add(LoadTasks()),
-        ),
-        BlocProvider<StatsBloc>(
-          create: (_) => StatsBloc(),
-        ),
+        BlocProvider<TaskBloc>(create: (_) => TaskBloc()..add(LoadTasks())),
+        BlocProvider<StatsBloc>(create: (_) => StatsBloc()),
       ],
       child: const MyApp(),
     ),
   );
 }
 
-/// One-time migration. After it runs it sets a flag so it never runs again.
 Future<void> _migrateHiveToSQLIfNeeded() async {
   final prefs = await SharedPreferences.getInstance();
   if (prefs.getBool('hive_migration_done') == true) return;
-
   try {
     final box = Hive.box<TaskModel>('tasks');
     if (box.isNotEmpty) {
       for (final task in box.values) {
-        // Only migrate tasks that don't already have a SQL id
         if (task.sqlId == null) {
           await DatabaseInitializer.createTask(
             title: task.title,
@@ -91,14 +59,12 @@ Future<void> _migrateHiveToSQLIfNeeded() async {
     }
     await prefs.setBool('hive_migration_done', true);
   } catch (e) {
-    // Non-fatal — user keeps their data in SQL from next launch
     debugPrint('Hive migration error: $e');
   }
 }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -114,27 +80,65 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _themeIndex = prefs.getInt('selectedThemeIndex') ?? 1);
+    final idx = prefs.getInt('selectedThemeIndex') ?? 1;
+    setState(() => _themeIndex = idx);
+    _applyBarsColor(idx);
   }
 
   Future<void> _changeTheme(int index) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('selectedThemeIndex', index);
     setState(() => _themeIndex = index);
+    _applyBarsColor(index);
+  }
+
+  // When bars briefly appear on swipe, paint them with the theme color
+  // so there is no black flash.
+  void _applyBarsColor(int index) {
+    final bg = ClockTheme.themes[index].backgroundColor;
+    // Determine icon brightness based on background luminance
+    final luminance = bg.computeLuminance();
+    final brightness = luminance > 0.3 ? Brightness.dark : Brightness.light;
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor:
+            Colors.transparent, // Makes status bar match your background color
+        statusBarIconBrightness: Brightness
+            .dark, // Dark icons (use Brightness.light for white text/icons)
+        statusBarBrightness: Brightness
+            .light, // Required styling configuration for iOS status bar
+        systemNavigationBarColor:
+            Colors.white, // Sets the bottom system navigation bar color
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = ClockTheme.themes[_themeIndex];
+    final t = ClockTheme.themes[_themeIndex];
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Do It Now',
+      // builder wraps every route — re-applies the color whenever navigation
+      // happens (route transitions can reset the overlay style to default).
+      builder: (context, child) {
+        _applyBarsColor(_themeIndex);
+        return child!;
+      },
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: theme.backgroundColor,
-        primaryColor: theme.hourHandColor,
-        cardColor: theme.secondaryBackgroundColor,
-        canvasColor: theme.backgroundColor,
-        dialogBackgroundColor: theme.backgroundColor,
+        scaffoldBackgroundColor: t.backgroundColor,
+        primaryColor: t.hourHandColor,
+        cardColor: t.secondaryBackgroundColor,
+        // canvasColor is the Android window background color in Flutter's
+        // Material layer — must match theme so nothing flashes black.
+        canvasColor: t.backgroundColor,
+        dialogBackgroundColor: t.backgroundColor,
+        appBarTheme: AppBarTheme(
+          backgroundColor: t.backgroundColor,
+          elevation: 0,
+        ),
       ),
       initialRoute: '/',
       routes: {
