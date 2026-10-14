@@ -34,8 +34,8 @@ android {
     applicationId "uz.doit.now"
     minSdkVersion flutter.minSdkVersion
     targetSdkVersion 36
-    versionCode 22
-    versionName "1.0.22"
+    versionCode 27
+    versionName "1.0.27"
 }
     ndkVersion = "26.3.11579264"
 
@@ -43,7 +43,7 @@ android {
         release {
             keyAlias = keystoreProperties["keyAlias"]
             keyPassword = keystoreProperties["keyPassword"]
-            // storeFile = file(keystoreProperties["storeFile"])
+            storeFile = file(keystoreProperties["storeFile"])
             storePassword = keystoreProperties["storePassword"]
             }
     }
