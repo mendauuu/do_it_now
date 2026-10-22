@@ -33,7 +33,7 @@ class MusketeerTestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Musketeer Pomodoro',
+        title: 'Musketeer Focus',
         home: MusketeerAnimationScreen(),
       );
 }

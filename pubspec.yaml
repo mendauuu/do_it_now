@@ -68,7 +68,11 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: false 
-  image_path: "assets/icon/app_icon.png"
+  image_path: "assets/icon/icon_512.png"
+  # Android 8+ adaptive icon: the artwork on a background matching its own
+  # dark-navy edges, inset so circle/squircle masks don't clip the ring.
+  adaptive_icon_background: "#110F2A"
+  adaptive_icon_foreground: "assets/icon/icon_512.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
